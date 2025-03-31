@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@layer base {
+  h1 {
+    @apply text-4xl;
+  }
+  h2 {
+    @apply text-3xl;
+  }
+  h3 {
+    @apply text-2xl;
+  }
+  h4 {
+    @apply text-xl;
+  }
+  h5 {
+    @apply text-lg;
+  }
+  h6 {
+    @apply text-xs;
+  }
+}
+
+:root {
+  padding: 0;
+  margin: 0;
+  font-size: 16px;
+  overscroll-behavior-block: contain;
+  --header-height: 7rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+  
+  }
+}
+
+body {
+  min-height: 100vh;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@media (max-width: 1024px) {
+  
+}
+
+/* ===================== MEDIA QUERIES ( SMALL DEVICES) ================= */
+
+@media (max-width: 600px) {
+
+}
