@@ -1,4 +1,6 @@
 ﻿using System.Text.Json;
+using Application.Interfaces;
+using Application.Services;
 using Domain.Entities;
 using Domain.Interfaces;
 using Moq;
@@ -11,6 +13,8 @@ public class TokenServiceTests
     [TestMethod]
     public async Task GetValidAccessTokenAsync_ShouldRefresh_WhenTokenIsExpired()
     {
+        var receivedAtExpired = DateTime.UtcNow.AddSeconds(-3601);
+        int expiresInSeconds = 3600;
         //arrange
         var expiredToken = new SpotifyToken
         {
@@ -18,7 +22,8 @@ public class TokenServiceTests
             RefreshToken = "refresh_toke",
             TokenType = "Bearer",
             Scope = "Scopes",
-            ExpiryTime = DateTime.UtcNow.AddMinutes(-10)
+            ReceivedAt = receivedAtExpired,
+            ExpiresIn = expiresInSeconds
         };
 
         var RefreshdToken = new SpotifyToken
@@ -27,7 +32,8 @@ public class TokenServiceTests
             TokenType = "Bearer",
             Scope = "Scopes",
             RefreshToken = "refresh_token",
-            ExpiryTime = DateTime.UtcNow.AddMinutes(60)
+            ReceivedAt = DateTime.UtcNow,
+            ExpiresIn = 3600
         };
 
         var mockSpotifyClient = new Mock<ISpotifyAuthClient>();
