@@ -1,8 +1,8 @@
 ﻿using System.Text.Json;
 using Application.Interfaces;
+using Application.Interfaces.repositories;
 using Application.Services;
 using Domain.Entities;
-using Domain.Interfaces;
 using Moq;
 
 namespace ApplicationTests;
@@ -15,11 +15,12 @@ public class TokenServiceTests
     {
         var receivedAtExpired = DateTime.UtcNow.AddSeconds(-3601);
         int expiresInSeconds = 3600;
+        var userId = Guid.NewGuid();
         //arrange
         var expiredToken = new SpotifyToken
         {
             AccessToken = "old_token",
-            RefreshToken = "refresh_toke",
+            RefreshToken = "refresh_token",
             TokenType = "Bearer",
             Scope = "Scopes",
             ReceivedAt = receivedAtExpired,
@@ -37,14 +38,18 @@ public class TokenServiceTests
         };
 
         var mockSpotifyClient = new Mock<ISpotifyAuthClient>();
+        var mockTokenRepository = new Mock<ITokenRepository>();
 
         mockSpotifyClient
             .Setup(x => x.RefreshAccessTokenAsync("refresh_token"))
             .ReturnsAsync(RefreshdToken);
 
-        var service = new TokenService(mockSpotifyClient.Object);
+        mockTokenRepository.Setup(x => x.GetByUserIdAsync(It.IsAny<Guid>())).ReturnsAsync(expiredToken);
 
-        var result = await service.GetValidAccessTokenAsync(expiredToken);
+
+        var service = new TokenService(mockSpotifyClient.Object, mockTokenRepository.Object);
+
+        var result = await service.GetValidAccessTokenAsync(userId);
 
         Assert.AreEqual("new_token", result.AccessToken);
     }

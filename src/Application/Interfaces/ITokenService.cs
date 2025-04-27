@@ -4,5 +4,5 @@ namespace Application.Interfaces;
 
 public interface ITokenService
 {
-    Task<SpotifyToken> GetValidAccessTokenAsync(SpotifyToken token);
+    Task<SpotifyToken> GetValidAccessTokenAsync(Guid userId);
 }
