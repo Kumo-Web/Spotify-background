@@ -44,8 +44,9 @@ public class TokenServiceTests
             .Setup(x => x.RefreshAccessTokenAsync("refresh_token"))
             .ReturnsAsync(RefreshdToken);
 
-        mockTokenRepository.Setup(x => x.GetByUserIdAsync(It.IsAny<Guid>())).ReturnsAsync(expiredToken);
-
+        mockTokenRepository
+            .Setup(x => x.GetByUserIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(expiredToken);
 
         var service = new TokenService(mockSpotifyClient.Object, mockTokenRepository.Object);
 
