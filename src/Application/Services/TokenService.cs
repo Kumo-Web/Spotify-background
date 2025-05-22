@@ -22,7 +22,7 @@ public class TokenService : ITokenService
         var token = await _tokenRepository.GetByUserIdAsync(userId);
 
         if (token is null)
-            return null;
+            throw new ArgumentNullException(nameof(token));
 
         DateTime expirationUtc = TokenHelper.CalculateTokenExpiryTime(
             token.ReceivedAt,
