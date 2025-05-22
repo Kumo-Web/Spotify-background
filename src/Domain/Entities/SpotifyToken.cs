@@ -8,4 +8,7 @@ public class SpotifyToken
     public string TokenType { get; set; } = string.Empty;
     public string Scope { get; set; } = string.Empty;
     public DateTime ReceivedAt { get; set; }
+
+    public Guid UserId { get; set; }
+    public virtual User? User { get; set; }
 }

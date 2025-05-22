@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Application.Helper;
 using Application.Interfaces;
 using Application.Interfaces.repositories;
@@ -19,22 +20,31 @@ public class TokenService : ITokenService
 
     public async Task<SpotifyToken> GetValidAccessTokenAsync(Guid userId)
     {
-        var token = await _tokenRepository.GetByUserIdAsync(userId);
-
-        if (token is null)
-            throw new ArgumentNullException(nameof(token));
-
-        DateTime expirationUtc = TokenHelper.CalculateTokenExpiryTime(
-            token.ReceivedAt,
-            token.ExpiresIn
-        );
-
-        if (TokenHelper.IsTokenExpired(expirationUtc))
+        try
         {
-            var refreshedToken = await _spotifyClient.RefreshAccessTokenAsync(token.RefreshToken);
-            await _tokenRepository.SaveAsync(refreshedToken);
-            return refreshedToken;
+            var token = await _tokenRepository.GetByUserIdAsync(userId);
+
+            if (token is null)
+                throw new ArgumentNullException(nameof(token));
+
+            DateTime expirationUtc = TokenHelper.CalculateTokenExpiryTime(
+                token.ReceivedAt,
+                token.ExpiresIn
+            );
+
+            if (TokenHelper.IsTokenExpired(expirationUtc))
+            {
+                var refreshedToken = await _spotifyClient.RefreshAccessTokenAsync(
+                    token.RefreshToken
+                );
+                await _tokenRepository.SaveAsync(refreshedToken);
+                return refreshedToken;
+            }
+            return token;
         }
-        return token;
+        catch (ArgumentNullException ex)
+        {
+            return null;
+        }
     }
 }
