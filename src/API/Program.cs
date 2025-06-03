@@ -17,7 +17,14 @@ builder.Logging.AddOpenTelemetry(options =>
         .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(logginService))
         .AddConsoleExporter();
 });
+SentrySdk.CaptureMessage("Hello Sentry");
 
+builder.WebHost.UseSentry(opt =>
+{
+    opt.Dsn = builder.Configuration["Sentry:Dsn"];
+    opt.TracesSampleRate = 1.0;
+    opt.Debug = true;
+});
 builder.Services
     .AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService(logginService))
