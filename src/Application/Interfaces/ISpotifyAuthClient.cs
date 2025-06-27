@@ -4,7 +4,11 @@ namespace Application.Interfaces;
 
 public interface ISpotifyAuthClient
 {
-    Task<SpotifyToken> RefreshAccessTokenAsync(string refreshToken);
+    string GetAuthorizationUrl();
     Task<SpotifyToken> GetAccessTokenWithCode(string code);
+<<<<<<< Updated upstream
     string GetAuthourizeUrl();
+=======
+    Task<SpotifyToken> RefreshAccessTokenAsync(string code);
+>>>>>>> Stashed changes
 }
