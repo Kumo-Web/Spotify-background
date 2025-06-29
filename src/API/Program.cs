@@ -1,3 +1,4 @@
+using Domain;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -10,6 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 
 var logginService = "SpotifyLogger";
+
+builder.Services.Configure<SpotifySettings>(builder.Configuration.GetSection("SpotifySettings"));
 
 builder.Logging.AddOpenTelemetry(options =>
 {
