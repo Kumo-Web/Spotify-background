@@ -1,4 +1,6 @@
-using Domain;
+using Application.Interfaces;
+using Application.Services;
+using Infrastructure;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -12,7 +14,8 @@ builder.Services.AddOpenApi();
 
 var logginService = "SpotifyLogger";
 
-builder.Services.Configure<SpotifySettings>(builder.Configuration.GetSection("SpotifySettings"));
+builder.Services.AddInfrastructureDI(builder.Configuration);
+builder.Services.AddScoped<ITokenService, TokenService>();
 
 builder.Logging.AddOpenTelemetry(options =>
 {

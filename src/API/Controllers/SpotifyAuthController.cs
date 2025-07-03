@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers
@@ -17,6 +18,18 @@ namespace API.Controllers
             _spotifyAuthClient = spotifyAuthClient;
         }
 
+        public async Task<IActionResult> Login(string userId)
+        {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return BadRequest("Invalid user id");
+            }
+
+            var user  = Guid.Parse(userId);
+            var url = _spotifyAuthClient.GetAuthorizationUrl(user);
+            return Ok(url);
+        }
+
         [HttpGet("callback")]
         public async Task<IActionResult> Callback()
         {
@@ -28,8 +41,8 @@ namespace API.Controllers
                 return BadRequest("Invalid code or state");
             }
 
-            if (state != Request.Query["state"])
             var token = await _spotifyAuthClient.GetAccessTokenWithCode(code);
+
             return Ok(token);
         }
     }

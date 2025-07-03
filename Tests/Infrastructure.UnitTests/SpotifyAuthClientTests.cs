@@ -47,11 +47,16 @@ public class SpotifyAuthClientTests
 
         var loggerMock = new Mock<ILogger<SpotifyAuthClientService>>();
         var mockOptions = new Mock<IOptionsSnapshot<SpotifySettings>>();
+        var mockhttpClient = new Mock<IHttpClientFactory>();
         mockOptions.Setup(x => x.Value).Returns(testSettings);
 
         var expectedUrl = new Uri($"https://accounts.spotify.com/authorize?{queryString}");
 
-        var service = new SpotifyAuthClientService(mockOptions.Object, loggerMock.Object);
+        var service = new SpotifyAuthClientService(
+            mockOptions.Object,
+            loggerMock.Object,
+            mockhttpClient.Object
+        );
 
         // Act
         var result = service.GetAuthorizationUrl(userIdGuid);
