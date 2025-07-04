@@ -1,4 +1,4 @@
-﻿namespace Domain;
+﻿namespace Domain.UnitTest;
 
 [TestClass]
 public sealed class Test1

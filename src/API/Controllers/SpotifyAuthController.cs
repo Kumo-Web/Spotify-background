@@ -18,6 +18,7 @@ namespace API.Controllers
             _spotifyAuthClient = spotifyAuthClient;
         }
 
+        [HttpGet("login")]
         public async Task<IActionResult> Login(string userId)
         {
             if (string.IsNullOrEmpty(userId))
@@ -25,7 +26,7 @@ namespace API.Controllers
                 return BadRequest("Invalid user id");
             }
 
-            var user  = Guid.Parse(userId);
+            var user = Guid.Parse(userId);
             var url = _spotifyAuthClient.GetAuthorizationUrl(user);
             return Ok(url);
         }
