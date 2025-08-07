@@ -6,6 +6,7 @@ import { getAuthUrl } from '../services/spotifyService';
 
   const login = async () => {
     setLoading(true);
+    debugger
     const url = await getAuthUrl();
     window.location.href = url;
   };

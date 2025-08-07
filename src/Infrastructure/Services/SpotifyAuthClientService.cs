@@ -72,7 +72,7 @@ public class SpotifyAuthClientService : ISpotifyAuthClient
         var content = new Dictionary<string, string>
         {
             { "grant_type", "authorization_code" },
-            { "redirtect_uri", _settings.RedirectUrl },
+            { "redirect_uri", _settings.RedirectUrl },
             { "code", code }
         };
 

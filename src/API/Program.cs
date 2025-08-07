@@ -7,22 +7,31 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
-
+var corsPolicyName = "AllowAllOrigins";
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-var logginService = "SpotifyLogger";
+// var logginService = "SpotifyLogger";
 
 builder.Services.AddInfrastructureDI(builder.Configuration);
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddControllers();
 
-builder.Logging.AddOpenTelemetry(options =>
+builder.Services.AddCors(options =>
 {
-    options
-        .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(logginService))
-        .AddConsoleExporter();
+    options.AddPolicy(name:corsPolicyName,
+        builder => builder.AllowAnyOrigin()
+                          .AllowAnyMethod()
+                          .AllowAnyHeader());
 });
+
+// builder.Logging.AddOpenTelemetry(options =>
+// {
+//     options
+//         .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(logginService))
+//         .AddConsoleExporter();
+// });
 SentrySdk.CaptureMessage("Hello Sentry");
 
 builder.WebHost.UseSentry(opt =>
@@ -31,11 +40,11 @@ builder.WebHost.UseSentry(opt =>
     opt.TracesSampleRate = 1.0;
     opt.Debug = true;
 });
-builder.Services
-    .AddOpenTelemetry()
-    .ConfigureResource(resource => resource.AddService(logginService))
-    .WithTracing(tracing => tracing.AddAspNetCoreInstrumentation().AddConsoleExporter())
-    .WithMetrics(metrics => metrics.AddAspNetCoreInstrumentation().AddConsoleExporter());
+// builder.Services
+//     .AddOpenTelemetry()
+//     .ConfigureResource(resource => resource.AddService(logginService))
+//     .WithTracing(tracing => tracing.AddAspNetCoreInstrumentation().AddConsoleExporter())
+//     .WithMetrics(metrics => metrics.AddAspNetCoreInstrumentation().AddConsoleExporter());
 
 var app = builder.Build();
 
@@ -46,6 +55,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors(corsPolicyName);
+app.MapControllers();
 
 app.Run();
 

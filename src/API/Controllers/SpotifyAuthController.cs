@@ -15,11 +15,11 @@ namespace API.Controllers
 
         public SpotifyAuthController(ISpotifyAuthClient spotifyAuthClient)
         {
-            _spotifyAuthClient = spotifyAuthClient;
+            _spotifyAuthClient = spotifyAuthClient; 
         }
 
-        [HttpGet("login")]
-        public async Task<IActionResult> Login(string userId)
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody]string userId)
         {
             if (string.IsNullOrEmpty(userId))
             {
@@ -28,7 +28,7 @@ namespace API.Controllers
 
             var user = Guid.Parse(userId);
             var url = _spotifyAuthClient.GetAuthorizationUrl(user);
-            return Ok(url);
+            return Content(url.ToString(), "text/plain");
         }
 
         [HttpGet("callback")]
