@@ -1,10 +1,7 @@
 using Application.Interfaces;
 using Application.Services;
 using Infrastructure;
-using OpenTelemetry.Logs;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
+
 
 var builder = WebApplication.CreateBuilder(args);
 var corsPolicyName = "AllowAllOrigins";
@@ -60,8 +57,3 @@ app.UseCors(corsPolicyName);
 app.MapControllers();
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
