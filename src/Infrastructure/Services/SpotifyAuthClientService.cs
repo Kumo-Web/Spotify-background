@@ -89,7 +89,7 @@ public class SpotifyAuthClientService : ISpotifyAuthClient
         requestMessage.Content = new FormUrlEncodedContent(content);
         var response = await _httpClient.SendAsync(requestMessage);
 
-        if (!response.IsSuccessStatusCode)
+    if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync();
             throw new Exception($"Failed to get access token: {error}");
@@ -97,7 +97,6 @@ public class SpotifyAuthClientService : ISpotifyAuthClient
 
         var contentJson = await response.Content.ReadAsStringAsync();
         var token = System.Text.Json.JsonSerializer.Deserialize<SpotifyToken>(contentJson);
-        
         return token;
     }
 

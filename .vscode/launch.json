@@ -6,19 +6,17 @@
   "configurations": [
     {
       "name": "Launch WebApi",
-      "type": "coreclr",
+      "type": "dotnet",
       "request": "launch",
-      "preLaunchTask": "build",
-      "program": "${workspaceFolder}/src/API/bin/Debug/net9.0/WebApi.dll",
-      "args": [],
-      "cwd": "${workspaceFolder}/src/API",
-      "stopAtEntry": false,
+      "projectPath": "${workspaceFolder}/src/API/WebApi.csproj",
+      "launchConfiguration": {
+        "env": {
+          "ASPNETCORE_ENVIRONMENT": "Development"
+        }
+      },
       "serverReadyAction": {
         "action": "openExternally",
         "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
-      },
-      "env": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
       }
     }
   ]

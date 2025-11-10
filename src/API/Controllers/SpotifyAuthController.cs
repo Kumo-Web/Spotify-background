@@ -43,7 +43,7 @@ namespace API.Controllers
             }
 
             var token = await _spotifyAuthClient.GetAccessTokenWithCode(code);
-
+            
             return Ok(token);
         }
     }

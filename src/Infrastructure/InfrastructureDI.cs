@@ -17,7 +17,8 @@ public static class InfrastructureDI
        services.Configure<SpotifySettings>(configuration.GetSection("SpotifySettings"));
 
         services.AddDbContext<SpotifyDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+            options.UseSqlServer(configuration["ConnectionStrings:DefaultConnection"]));
+                // configuration.GetConnectionString("DefaultConnection")));
 
         services.AddHttpClient(
             "SpotifyClient",
