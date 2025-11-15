@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Application.Interfaces;
+using Application.Interfaces.repositories;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers
@@ -12,10 +9,12 @@ namespace API.Controllers
     public class SpotifyAuthController : ControllerBase
     {
         private readonly ISpotifyAuthClient _spotifyAuthClient;
+        private readonly ITokenRepository _tokenRepository;
 
-        public SpotifyAuthController(ISpotifyAuthClient spotifyAuthClient)
+        public SpotifyAuthController(ISpotifyAuthClient spotifyAuthClient, ITokenRepository tokenRepository)
         {
-            _spotifyAuthClient = spotifyAuthClient; 
+            _spotifyAuthClient = spotifyAuthClient;
+            _tokenRepository = tokenRepository;
         }
 
         [HttpPost("login")]
@@ -25,9 +24,10 @@ namespace API.Controllers
             {
                 return BadRequest("Invalid user id");
             }
-
             var user = Guid.Parse(userId);
+
             var url = _spotifyAuthClient.GetAuthorizationUrl(user);
+
             return Content(url.ToString(), "text/plain");
         }
 
@@ -42,9 +42,21 @@ namespace API.Controllers
                 return BadRequest("Invalid code or state");
             }
 
-            var token = await _spotifyAuthClient.GetAccessTokenWithCode(code);
+        var token = await _spotifyAuthClient.GetAccessTokenWithCode(code);
+
+            if (token == null)
+            {
+                return BadRequest("Failed to retrieve access token");
+            }
+
+            var user = await _tokenRepository.GetByUserIdAsync(Guid.Parse(state));
+
+             await _tokenRepository.UpdateAsync(token);
+
+            var frontendUrl = "http://localhost:3000";
             
-            return Ok(token);
+            return Redirect($"{frontendUrl}/dashboard?access_token={Uri.EscapeDataString(token.AccessToken)}");
+
         }
     }
 }

@@ -10,11 +10,13 @@ public class TokenService : ITokenService
 {
     private readonly ISpotifyAuthClient _spotifyClient;
     private readonly ITokenRepository _tokenRepository;
+    private readonly ISpotifyAuthClient _spotifyAuthClient;
 
-    public TokenService(ISpotifyAuthClient spotifyClient, ITokenRepository tokenRepository)
+    public TokenService(ISpotifyAuthClient spotifyClient, ITokenRepository tokenRepository, ISpotifyAuthClient spotifyAuthClient)
     {
         _tokenRepository =
             tokenRepository ?? throw new ArgumentNullException(nameof(tokenRepository));
+        _spotifyAuthClient = spotifyAuthClient;
         _spotifyClient = spotifyClient ?? throw new ArgumentNullException(nameof(spotifyClient));
     }
 

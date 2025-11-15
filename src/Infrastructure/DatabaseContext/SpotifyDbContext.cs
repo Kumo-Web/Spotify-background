@@ -16,17 +16,17 @@ public class SpotifyDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.Entity<SpotifyToken>(entity =>
-        {
-            entity.HasKey(t => t.UserId);
+        // modelBuilder.Entity<SpotifyToken>(entity =>
+        // {
+        //     entity.HasKey(t => t.UserId);
 
-            modelBuilder.Entity<User>()
-            .HasOne(u => u.SpotifyToken)
-            .WithOne(t => t.User)
-            .HasForeignKey<SpotifyToken>(t => t.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+        //     modelBuilder.Entity<User>()
+        //     .HasOne(u => u.SpotifyToken)
+        //     // .WithOne(t => t.User)
+        //     .HasForeignKey<SpotifyToken>(t => t.UserId)
+        //     .OnDelete(DeleteBehavior.Cascade);
 
-        });
+        // });
             
     }
 }

@@ -6,4 +6,5 @@ public interface ITokenRepository
 {
     Task<SpotifyToken?> GetByUserIdAsync(Guid userId);
     Task SaveAsync(SpotifyToken token);
+    Task UpdateAsync(SpotifyToken token);
 }

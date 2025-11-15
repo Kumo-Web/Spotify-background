@@ -25,5 +25,6 @@ public class SpotifyToken
     [Key]
     public Guid UserId { get; set; }
 
-    public virtual User? User { get; set; }
+    //TODO: add relationship back to User
+    // public virtual User? User { get; set; }
 }

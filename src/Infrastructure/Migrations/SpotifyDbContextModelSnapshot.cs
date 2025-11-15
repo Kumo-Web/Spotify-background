@@ -25,6 +25,7 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Entities.SpotifyToken", b =>
                 {
                     b.Property<Guid>("UserId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("AccessToken")
@@ -90,22 +91,6 @@ namespace Infrastructure.Migrations
                     b.HasKey("UserId");
 
                     b.ToTable("Users");
-                });
-
-            modelBuilder.Entity("Domain.Entities.SpotifyToken", b =>
-                {
-                    b.HasOne("Domain.Entities.User", "User")
-                        .WithOne("SpotifyToken")
-                        .HasForeignKey("Domain.Entities.SpotifyToken", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Domain.Entities.User", b =>
-                {
-                    b.Navigation("SpotifyToken");
                 });
 #pragma warning restore 612, 618
         }

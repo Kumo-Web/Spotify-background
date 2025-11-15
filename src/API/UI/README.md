@@ -49,4 +49,5 @@ Created a header and footer already with some extra structure files and folders,
 
 
 to run migration
-dotnet ef migrations add InitialMigration --verbose -s src/API/WebApi.csproj -p src/Infrastructure/Infrastructure.csproj -c Infrastructure.DatabaseContext.SpotifyDbContext
+dotnet ef migrations add InitialMigration -s src/API/WebApi.csproj -p src/Infrastructure/Infrastructure.csproj -c Infrastructure.DatabaseContext.SpotifyDbContext
+dotnet ef database update  -s src/API/WebApi.csproj  

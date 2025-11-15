@@ -10,5 +10,6 @@ public class User
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    public virtual SpotifyToken? SpotifyToken { get; set; }
+    ///TODO: add relationship to SpotifyToken
+    // public virtual SpotifyToken? SpotifyToken { get; set; }
 }

@@ -97,11 +97,44 @@ public class SpotifyAuthClientService : ISpotifyAuthClient
 
         var contentJson = await response.Content.ReadAsStringAsync();
         var token = System.Text.Json.JsonSerializer.Deserialize<SpotifyToken>(contentJson);
+
+        //TODO:persiste state
+        //temporary measure for db settings
+        token.UserId = Guid.Parse("6a6f528b-9ca5-4668-9144-dbe3221cd27f");
+
         return token;
     }
 
-    public Task<SpotifyToken> RefreshAccessTokenAsync(string refreshToken)
+    public async Task<SpotifyToken> RefreshAccessTokenAsync(string refreshToken)
     {
-        throw new NotImplementedException();
+        if (refreshToken is null)
+            throw new ArgumentNullException(nameof(refreshToken));
+
+        var requestMessage = new HttpRequestMessage(
+            HttpMethod.Post,
+            "https://accounts.spotify.com/api/token"
+        );
+
+        var content = new Dictionary<string, string>
+        {
+            { "grant_type", "refresh_token" },
+            { "refresh_token", refreshToken },
+            { "client_id", _settings.ClientId }
+        };
+
+        requestMessage.Content = new FormUrlEncodedContent(content);
+
+        var response = await _httpClient.SendAsync(requestMessage);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            throw new Exception($"Failed to refresh access token: {error}");
+        }
+
+        var contentJson = await response.Content.ReadAsStringAsync();
+        var token = System.Text.Json.JsonSerializer.Deserialize<SpotifyToken>(contentJson);
+
+        return token;
     }
 }

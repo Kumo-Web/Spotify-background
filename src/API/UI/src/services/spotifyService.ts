@@ -1,5 +1,6 @@
 export const getAuthUrl = async (): Promise<string> => {
  
+  //TODO: get user id from auth service
   const userId = "6a6f528b-9ca5-4668-9144-dbe3221cd27f"
   const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/spotifyAuth/login`, {
   method: 'POST',
