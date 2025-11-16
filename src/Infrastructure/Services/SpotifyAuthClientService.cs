@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Runtime.InteropServices.Marshalling;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Infrastructure.Services;
@@ -119,10 +120,11 @@ public class SpotifyAuthClientService : ISpotifyAuthClient
         {
             { "grant_type", "refresh_token" },
             { "refresh_token", refreshToken },
-            { "client_id", _settings.ClientId }
         };
-
         requestMessage.Content = new FormUrlEncodedContent(content);
+
+        var auth = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_settings.ClientId}:{_settings.ClientSecret}"));
+        requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Basic", auth);
 
         var response = await _httpClient.SendAsync(requestMessage);
 

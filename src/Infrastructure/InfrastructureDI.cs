@@ -17,8 +17,7 @@ public static class InfrastructureDI
        services.Configure<SpotifySettings>(configuration.GetSection("SpotifySettings"));
 
         services.AddDbContext<SpotifyDbContext>(options =>
-            options.UseSqlServer(configuration["ConnectionStrings:DefaultConnection"]));
-                // configuration.GetConnectionString("DefaultConnection")));
+            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
         services.AddHttpClient(
             "SpotifyClient",
@@ -27,6 +26,7 @@ public static class InfrastructureDI
                 client.BaseAddress = new Uri("https://accounts.spotify.com");
             }
         );
+        services.AddScoped<IPlaylistService, PlaylistService>();
         services.AddScoped<ISpotifyAuthClient, SpotifyAuthClientService>();
         services.AddScoped<ITokenRepository, TokenRepository>();
 

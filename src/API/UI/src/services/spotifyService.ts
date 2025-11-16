@@ -20,3 +20,14 @@ export const exchangeCode = async (code: string): Promise<any> => {
   const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/spotifyAuth/callback?code=${code}`);
   return await res.json();
 };
+
+
+export const getUserInfo = async (userId: string): Promise<any> => {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/SpotifyPlaylist/GetUserInfo/${userId}`, {
+   method: 'GET',
+   headers: {
+    'Content-Type': 'application/json',
+   },
+  });
+  return await res.json();
+}

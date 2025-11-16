@@ -39,7 +39,9 @@ public class TokenService : ITokenService
                 var refreshedToken = await _spotifyClient.RefreshAccessTokenAsync(
                     token.RefreshToken
                 );
-                await _tokenRepository.SaveAsync(refreshedToken);
+                //TODO remove this once state is done
+                refreshedToken.UserId = token.UserId;
+                await _tokenRepository.UpdateAsync(refreshedToken);
                 return refreshedToken;
             }
             return token;
