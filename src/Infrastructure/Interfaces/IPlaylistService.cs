@@ -8,6 +8,6 @@ public interface IPlaylistService
     Task CreatePlaylistAsync(Guid userId, string playlistName, List<string> trackUris);
     Task<List<string>> GetMostPlayedTracksAsync(Guid userId, int limit);
     Task<PrivateUser> GetSpotifyUserInfoAsync(Guid userId);
-    Task<List<string>> GetTopArtistsAsync(Guid userId, int limit);
+    Task<Paging<FullArtist>> GetTopArtistsAsync(Guid userId, int limit);
     Task<List<string>> GetTopTracksAsync(Guid userId, int limit);
 }
