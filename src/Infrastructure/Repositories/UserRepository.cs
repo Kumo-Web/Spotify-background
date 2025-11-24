@@ -15,12 +15,12 @@ public class UserRepository : IUserRepository
     public async Task<User> GetUserIdAsync(Guid userId)
     {
         if (userId == Guid.Empty)
-            return null;
+            throw new ArgumentNullException(nameof(userId));
 
         var user = await _context.Users.FindAsync(userId);
 
         if (user is null)
-            return null;
+            throw new ArgumentNullException(nameof(user));
             
         return user;
     }

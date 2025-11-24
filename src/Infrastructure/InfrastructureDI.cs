@@ -2,6 +2,7 @@ using Application.Interfaces;
 using Application.Interfaces.repositories;
 using Domain;
 using Infrastructure.DatabaseContext;
+using Infrastructure.Interfaces;
 using Infrastructure.Repositories;
 using Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -29,7 +30,9 @@ public static class InfrastructureDI
         services.AddScoped<IPlaylistService, PlaylistService>();
         services.AddScoped<ISpotifyAuthClient, SpotifyAuthClientService>();
         services.AddScoped<ITokenRepository, TokenRepository>();
-
+        services.AddScoped<ISpotifyClientFactory, SpotifyClientFactory>();
+        services.AddScoped<ISpotifyUserService, SpotifyUserService>();
+        services.AddScoped<ISpotifyTrackService, SpotifyTrackService>();
         return services;
     }
 }

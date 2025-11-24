@@ -108,7 +108,7 @@ public class SpotifyAuthClientService : ISpotifyAuthClient
 
     public async Task<SpotifyToken> RefreshAccessTokenAsync(string refreshToken)
     {
-        if (refreshToken is null)
+        if (string.IsNullOrEmpty(refreshToken))
             throw new ArgumentNullException(nameof(refreshToken));
 
         var requestMessage = new HttpRequestMessage(

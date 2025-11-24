@@ -18,7 +18,7 @@ namespace API.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody]string userId)
+        public async Task<IActionResult> Login([FromBody] string userId)
         {
             if (string.IsNullOrEmpty(userId))
             {
@@ -42,7 +42,7 @@ namespace API.Controllers
                 return BadRequest("Invalid code or state");
             }
 
-        var token = await _spotifyAuthClient.GetAccessTokenWithCode(code);
+            var token = await _spotifyAuthClient.GetAccessTokenWithCode(code);
 
             if (token == null)
             {
@@ -51,10 +51,10 @@ namespace API.Controllers
 
             var user = await _tokenRepository.GetByUserIdAsync(Guid.Parse(state));
 
-             await _tokenRepository.UpdateAsync(token);
+            await _tokenRepository.UpdateAsync(token);
 
             var frontendUrl = "http://localhost:3000";
-            
+
             return Redirect($"{frontendUrl}/dashboard?access_token={Uri.EscapeDataString(token.AccessToken)}");
 
         }

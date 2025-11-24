@@ -16,12 +16,32 @@ public class PlaylistService : IPlaylistService
         _tokenService = tokenService;
     }
 
+    public Task AddTracksToPlaylistAsync(Guid userId, string playlistId, List<string> trackUris)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task CreatePlaylistAsync(Guid userId, string playlistName, List<string> trackUris)
     {
         throw new NotImplementedException();
     }
 
-    public Task<List<string>> GetMostPlayedTracksAsync(Guid userId, int limit)
+    public Task<string> CreatePlaylistAsync(Guid userId, string playlistName, string description = null, bool isPublic = false)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task DeletePlaylistAsync(Guid userId, string playlistId)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<Paging<FullTrack>> GetOnRepeatTracksAsync(Guid userId, int limit)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<FullPlaylist> GetPlaylistAsync(Guid userId, string playlistId)
     {
         throw new NotImplementedException();
     }
@@ -53,7 +73,34 @@ public class PlaylistService : IPlaylistService
         return artists;
     }
 
-    public Task<List<string>> GetTopTracksAsync(Guid userId, int limit)
+    public async Task<Paging<FullTrack>> GetTopTracksAsync(Guid userId, int limit)
+    {
+        if (userId == Guid.Empty)
+            throw new ArgumentNullException(nameof(userId));
+
+        var spotifyClient = await _spotifyClientFactory.CreateSpotifyClient(userId);
+        var tracks = await spotifyClient.Personalization.GetTopTracks(
+           new PersonalizationTopRequest
+           {
+               Limit = 20,
+               TimeRangeParam = PersonalizationTopRequest.TimeRange.MediumTerm
+           }
+        );
+        
+        return tracks;
+    }
+
+    public Task<List<FullPlaylist>> GetUserPlaylistsAsync(Guid userId, int limit = 50)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task RemoveTracksFromPlaylistAsync(Guid userId, string playlistId, List<string> trackUris)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task UpdatePlaylistDetailsAsync(Guid userId, string playlistId, string name, string description)
     {
         throw new NotImplementedException();
     }

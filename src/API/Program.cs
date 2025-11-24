@@ -1,9 +1,6 @@
-using System.Diagnostics;
 using Application.Interfaces;
 using Application.Services;
 using Infrastructure;
-using Infrastructure.DatabaseContext;
-using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -24,7 +21,7 @@ builder.Services.AddControllers();
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name:corsPolicyName,
+    options.AddPolicy(name: corsPolicyName,
         builder => builder.AllowAnyOrigin()
                           .AllowAnyMethod()
                           .AllowAnyHeader());
