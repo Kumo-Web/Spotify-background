@@ -21,11 +21,6 @@ public class PlaylistService : IPlaylistService
         throw new NotImplementedException();
     }
 
-    public Task CreatePlaylistAsync(Guid userId, string playlistName, List<string> trackUris)
-    {
-        throw new NotImplementedException();
-    }
-
     public Task<string> CreatePlaylistAsync(Guid userId, string playlistName, string description = null, bool isPublic = false)
     {
         throw new NotImplementedException();
@@ -36,59 +31,43 @@ public class PlaylistService : IPlaylistService
         throw new NotImplementedException();
     }
 
-    public Task<Paging<FullTrack>> GetOnRepeatTracksAsync(Guid userId, int limit)
-    {
-        throw new NotImplementedException();
-    }
-
     public Task<FullPlaylist> GetPlaylistAsync(Guid userId, string playlistId)
     {
         throw new NotImplementedException();
     }
 
-    public async Task<PrivateUser> GetSpotifyUserInfoAsync(Guid userId)
-    {
-        if (userId == Guid.Empty)
-            throw new ArgumentNullException(nameof(userId));
+    // public async Task<Paging<FullArtist>> GetTopArtistsAsync(Guid userId, int limit)
+    // {
+    //     if (userId == Guid.Empty)
+    //         throw new ArgumentNullException(nameof(userId));
 
-        var spotifyClient = await _spotifyClientFactory.CreateSpotifyClient(userId);
-        var user = await spotifyClient.UserProfile.Current();
-        return user;
+    //     var spotifyClient = await _spotifyClientFactory.CreateSpotifyClient(userId);
+    //     var artists = await spotifyClient.Personalization.GetTopArtists(
+    //        new PersonalizationTopRequest
+    //        {
+    //            Limit = 20,
+    //            TimeRangeParam = PersonalizationTopRequest.TimeRange.MediumTerm
+    //        }
+    //    );
+    //     return artists;
+    // }
 
-    }
+    // public async Task<Paging<FullTrack>> GetTopTracksAsync(Guid userId, int limit)
+    // {
+    //     if (userId == Guid.Empty)
+    //         throw new ArgumentNullException(nameof(userId));
 
-    public async Task<Paging<FullArtist>> GetTopArtistsAsync(Guid userId, int limit)
-    {
-        if (userId == Guid.Empty)
-            throw new ArgumentNullException(nameof(userId));
-
-        var spotifyClient = await _spotifyClientFactory.CreateSpotifyClient(userId);
-        var artists = await spotifyClient.Personalization.GetTopArtists(
-           new PersonalizationTopRequest
-           {
-               Limit = 20,
-               TimeRangeParam = PersonalizationTopRequest.TimeRange.MediumTerm
-           }
-       );
-        return artists;
-    }
-
-    public async Task<Paging<FullTrack>> GetTopTracksAsync(Guid userId, int limit)
-    {
-        if (userId == Guid.Empty)
-            throw new ArgumentNullException(nameof(userId));
-
-        var spotifyClient = await _spotifyClientFactory.CreateSpotifyClient(userId);
-        var tracks = await spotifyClient.Personalization.GetTopTracks(
-           new PersonalizationTopRequest
-           {
-               Limit = 20,
-               TimeRangeParam = PersonalizationTopRequest.TimeRange.MediumTerm
-           }
-        );
+    //     var spotifyClient = await _spotifyClientFactory.CreateSpotifyClient(userId);
+    //     var tracks = await spotifyClient.Personalization.GetTopTracks(
+    //        new PersonalizationTopRequest
+    //        {
+    //            Limit = 20,
+    //            TimeRangeParam = PersonalizationTopRequest.TimeRange.MediumTerm
+    //        }
+    //     );
         
-        return tracks;
-    }
+    //     return tracks;
+    // }
 
     public Task<List<FullPlaylist>> GetUserPlaylistsAsync(Guid userId, int limit = 50)
     {

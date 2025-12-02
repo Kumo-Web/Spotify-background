@@ -13,14 +13,6 @@ public class SpotifyPlaylistController : ControllerBase
         _playlistService = playlistService;
     }
 
-    [HttpGet("getUserInfo/{Id}")]
-    public async Task<IActionResult> GetSpotifyUserInfo([FromRoute]Guid Id)
-    {
-        var user = await _playlistService.GetSpotifyUserInfoAsync(Id);
-        return Ok(user);
-    }
-
-
     public async Task<IActionResult> CreatePlaylist()
     {
         return Ok();

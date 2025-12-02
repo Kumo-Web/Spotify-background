@@ -38,6 +38,7 @@ public class TokenServiceTests
 
         var mockSpotifyClient = new Mock<ISpotifyAuthClient>();
         var mockTokenRepository = new Mock<ITokenRepository>();
+        var mockSpotifyAuthClient = new Mock<ISpotifyAuthClient>();
 
         mockSpotifyClient
             .Setup(x => x.RefreshAccessTokenAsync("refresh_token"))
@@ -47,7 +48,7 @@ public class TokenServiceTests
             .Setup(x => x.GetByUserIdAsync(It.IsAny<Guid>()))
             .ReturnsAsync(expiredToken);
 
-        var service = new TokenService(mockSpotifyClient.Object, mockTokenRepository.Object);
+        var service = new TokenService(mockSpotifyClient.Object, mockTokenRepository.Object, mockSpotifyAuthClient.Object);
 
         var result = await service.GetValidAccessTokenAsync(userId);
 

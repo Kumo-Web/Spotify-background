@@ -5,19 +5,90 @@ namespace Infrastructure.Services;
 
 public class SpotifyUserService : ISpotifyUserService
 {
-    public Task<PrivateUser> GetCurrentUserAsync(Guid userId)
+    private readonly ISpotifyClientFactory _spotifyClientFactory;
+
+    public SpotifyUserService(ISpotifyClientFactory spotifyClientFactory)
     {
-        throw new NotImplementedException();
+        _spotifyClientFactory = spotifyClientFactory;
     }
 
-    public Task<Paging<FullArtist>> GetFollowedArtistsAsync(Guid userId, int limit = 50)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentNullException"></exception> <summary>
+    /// 
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <returns></returns>
+    public async Task<PrivateUser> GetCurrentUserAsync(Guid userId)
     {
-        throw new NotImplementedException();
+        if (userId == Guid.Empty)
+            throw new ArgumentNullException(nameof(userId));
+
+        var spotifyClient = await _spotifyClientFactory.CreateSpotifyClient(userId);
+        var user = await spotifyClient.UserProfile.Current();
+        return user;
     }
 
-    public Task<CursorPaging<PlayHistoryItem>> GetRecentlyPlayedTracksAsync(Guid userId, int limit = 50)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <param name="limit"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentNullException"></exception> <summary>
+    /// 
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <param name="limit"></param>
+    /// <returns></returns>
+    public async Task<List<FullArtist>> GetFollowedArtistsAsync(Guid userId, int limit = 50)
     {
-        throw new NotImplementedException();
+        if (userId == Guid.Empty)
+            throw new ArgumentNullException(nameof(userId));
+
+        var spotifyClient = await _spotifyClientFactory.CreateSpotifyClient(userId);
+
+        var allArtists = new List<FullArtist>();
+
+        var artistRequest = new FollowOfCurrentUserRequest(FollowOfCurrentUserRequest.Type.Artist)
+        {
+            Limit = limit
+        };
+
+        var artists = await spotifyClient.Follow.OfCurrentUser(artistRequest);
+        allArtists.AddRange(artists.Artists.Items);
+
+        while (!string.IsNullOrEmpty(artists.Artists.Next))
+        {
+            var request = new FollowOfCurrentUserRequest(FollowOfCurrentUserRequest.Type.Artist)
+            {
+                After = artistRequest.After
+            };
+
+            artists = await spotifyClient.Follow.OfCurrentUser(request);
+            allArtists.AddRange(artists.Artists.Items);
+        }
+
+        return allArtists;
+    }
+
+    public async Task<CursorPaging<PlayHistoryItem>> GetRecentlyPlayedTracksAsync(Guid userId, int limit = 50)
+    {
+
+        if (userId == Guid.Empty)
+            throw new ArgumentNullException(nameof(userId));
+
+        var spotifyClient = await _spotifyClientFactory.CreateSpotifyClient(userId);
+
+        var playHistory = await spotifyClient.Player.GetRecentlyPlayed(new PlayerRecentlyPlayedRequest
+        {
+            Limit = limit
+        });
+
+       return playHistory;
     }
 
     public Task<Paging<SavedTrack>> GetSavedTracksAsync(Guid userId, int limit = 50, int offset = 0)
