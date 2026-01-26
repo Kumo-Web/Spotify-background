@@ -16,14 +16,51 @@ public class PlaylistService : IPlaylistService
         _tokenService = tokenService;
     }
 
-    public Task AddTracksToPlaylistAsync(Guid userId, string playlistId, List<string> trackUris)
+    public async Task AddTracksToPlaylistAsync(Guid userId, string playlistId, List<string> trackUris)
     {
-        throw new NotImplementedException();
+        if (userId == Guid.Empty)
+            throw new ArgumentNullException(nameof(userId));
+        if (string.IsNullOrEmpty(playlistId))
+            throw new ArgumentNullException(nameof(playlistId));
+        if (trackUris == null || trackUris.Count == 0)
+            throw new ArgumentNullException(nameof(trackUris));
+
+        var spotifyClient = await _spotifyClientFactory.CreateSpotifyClient(userId);
+
+        // Spotify API limits to 100 tracks per request
+        const int batchSize = 100;
+        for (int i = 0; i < trackUris.Count; i += batchSize)
+        {
+            var batch = trackUris.Skip(i).Take(batchSize).ToList();
+            var request = new PlaylistAddItemsRequest
+            {
+                Uris = batch
+            };
+            await spotifyClient.Playlists.AddItems(playlistId, request);
+        }
     }
 
-    public Task<string> CreatePlaylistAsync(Guid userId, string playlistName, string description = null, bool isPublic = false)
+    public async Task<string> CreatePlaylistAsync(Guid userId, string playlistName, string description = null, bool isPublic = false)
     {
-        throw new NotImplementedException();
+        if (userId == Guid.Empty)
+            throw new ArgumentNullException(nameof(userId));
+        if (string.IsNullOrEmpty(playlistName))
+            throw new ArgumentNullException(nameof(playlistName));
+
+        var spotifyClient = await _spotifyClientFactory.CreateSpotifyClient(userId);
+
+        // Get the user's Spotify ID
+        var currentUser = await spotifyClient.UserProfile.Current();
+
+        var request = new PlaylistCreateRequest(playlistName)
+        {
+            Description = description,
+            Public = isPublic
+        };
+
+        var playlist = await spotifyClient.Playlists.Create(currentUser.Id, request);
+
+        return playlist.Id;
     }
 
     public Task DeletePlaylistAsync(Guid userId, string playlistId)
@@ -69,9 +106,48 @@ public class PlaylistService : IPlaylistService
     //     return tracks;
     // }
 
-    public Task<List<FullPlaylist>> GetUserPlaylistsAsync(Guid userId, int limit = 50)
+    public async Task<List<FullPlaylist>> GetUserPlaylistsAsync(Guid userId, int limit = 50)
     {
-        throw new NotImplementedException();
+        if (userId == Guid.Empty)
+            throw new ArgumentNullException(nameof(userId));
+
+        var spotifyClient = await _spotifyClientFactory.CreateSpotifyClient(userId);
+
+        var allPlaylists = new List<FullPlaylist>();
+
+        var playlists = await spotifyClient.Playlists.CurrentUsers(
+            new PlaylistCurrentUsersRequest
+            {
+                Limit = limit
+            }
+        );
+
+        // Fetch full details for each playlist
+        if (playlists.Items != null)
+        {
+            foreach (var simplePlaylist in playlists.Items)
+            {
+                var fullPlaylist = await spotifyClient.Playlists.Get(simplePlaylist.Id);
+                allPlaylists.Add(fullPlaylist);
+            }
+        }
+
+        // Handle pagination
+        while (!string.IsNullOrEmpty(playlists.Next) && allPlaylists.Count < limit)
+        {
+            playlists = await spotifyClient.Playlists.CurrentUsers();
+            if (playlists.Items != null)
+            {
+                foreach (var simplePlaylist in playlists.Items)
+                {
+                    if (allPlaylists.Count >= limit) break;
+                    var fullPlaylist = await spotifyClient.Playlists.Get(simplePlaylist.Id);
+                    allPlaylists.Add(fullPlaylist);
+                }
+            }
+        }
+
+        return allPlaylists;
     }
 
     public Task RemoveTracksFromPlaylistAsync(Guid userId, string playlistId, List<string> trackUris)
