@@ -16,29 +16,34 @@ public class PlaylistService : IPlaylistService
         _tokenService = tokenService;
     }
 
-    public async Task AddTracksToPlaylistAsync(Guid userId, string playlistId, List<string> trackUris)
+    public Task AddTracksToPlaylistAsync(Guid userId, string playlistId, List<string> trackUris)
     {
-        if (userId == Guid.Empty)
-            throw new ArgumentNullException(nameof(userId));
-        if (string.IsNullOrEmpty(playlistId))
-            throw new ArgumentNullException(nameof(playlistId));
-        if (trackUris == null || trackUris.Count == 0)
-            throw new ArgumentNullException(nameof(trackUris));
-
-        var spotifyClient = await _spotifyClientFactory.CreateSpotifyClient(userId);
-
-        // Spotify API limits to 100 tracks per request
-        const int batchSize = 100;
-        for (int i = 0; i < trackUris.Count; i += batchSize)
-        {
-            var batch = trackUris.Skip(i).Take(batchSize).ToList();
-            var request = new PlaylistAddItemsRequest
-            {
-                Uris = batch
-            };
-            await spotifyClient.Playlists.AddItems(playlistId, request);
-        }
+        throw new NotImplementedException();
     }
+
+    // public async Task AddTracksToPlaylistAsync(Guid userId, string playlistId, List<string> trackUris)
+    // {
+    //     if (userId == Guid.Empty)
+    //         throw new ArgumentNullException(nameof(userId));
+    //     if (string.IsNullOrEmpty(playlistId))
+    //         throw new ArgumentNullException(nameof(playlistId));
+    //     if (trackUris == null || trackUris.Count == 0)
+    //         throw new ArgumentNullException(nameof(trackUris));
+
+    //     var spotifyClient = await _spotifyClientFactory.CreateSpotifyClient(userId);
+
+    //     // Spotify API limits to 100 tracks per request
+    //     const int batchSize = 100;
+    //     for (int i = 0; i < trackUris.Count; i += batchSize)
+    //     {
+    //         var batch = trackUris.Skip(i).Take(batchSize).ToList();
+    //         var request = new PlaylistAddItemsRequest
+    //         {
+    //             Uris = batch
+    //         };
+    //         await spotifyClient.Playlists.AddItems(playlistId, request);
+    //     }
+    // }
 
     public async Task<string> CreatePlaylistAsync(Guid userId, string playlistName, string description = null, bool isPublic = false)
     {
