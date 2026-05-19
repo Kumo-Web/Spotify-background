@@ -13,8 +13,8 @@ public class SpotifyUserController : Controller
 
     public SpotifyUserController(ILogger<SpotifyUserController> logger, ISpotifyUserService userService)
     {
-        _logger = logger;
-        _userService = userService;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _userService = userService ?? throw new ArgumentNullException(nameof(userService));
     }
 
     [HttpGet("getUserInfo/{Id}")]
@@ -23,7 +23,7 @@ public class SpotifyUserController : Controller
         var user = await _userService.GetCurrentUserAsync(Id);
         return Ok(user);
     }
-    
+
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {
