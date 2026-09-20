@@ -16,6 +16,9 @@
 # Mono auto generated files
 mono_crash.*
 appsettings.*
+# ...but the committed template must stay tracked, or a fresh clone has no idea
+# what configuration the app needs.
+!appsettings.Example.json
 
 
 # Build results

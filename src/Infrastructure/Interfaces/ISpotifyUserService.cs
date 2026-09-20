@@ -2,12 +2,29 @@ using SpotifyAPI.Web;
 
 namespace Infrastructure.Interfaces;
 
+/// <summary>
+/// Reads the current user's Spotify data. No method takes a user id — see
+/// <see cref="ISpotifyClientFactory"/> for why.
+/// </summary>
 public interface ISpotifyUserService
 {
-    Task<PrivateUser> GetCurrentUserAsync(Guid userId);
-    Task<Paging<FullTrack>> GetTopTracksAsync(Guid userId, int limit, string timeRange = "medium_term");
-    Task<Paging<FullArtist>> GetTopArtistsAsync(Guid userId, int limit, string timeRange = "medium_term");
-    Task<Paging<SavedTrack>> GetSavedTracksAsync(Guid userId, int limit = 50, int offset = 0);
-    Task<CursorPaging<PlayHistoryItem>> GetRecentlyPlayedTracksAsync(Guid userId, int limit = 50);
-    Task<List<FullArtist>> GetFollowedArtistsAsync(Guid userId, int limit = 50);
+    Task<PrivateUser> GetProfileAsync(CancellationToken ct = default);
+
+    Task<IReadOnlyList<FullArtist>> GetTopArtistsAsync(
+        PersonalizationTopRequest.TimeRange range, int limit = 50, CancellationToken ct = default);
+
+    Task<IReadOnlyList<FullTrack>> GetTopTracksAsync(
+        PersonalizationTopRequest.TimeRange range, int limit = 50, CancellationToken ct = default);
+
+    Task<IReadOnlyList<PlayHistoryItem>> GetRecentlyPlayedAsync(
+        int limit = 50, CancellationToken ct = default);
+
+    Task<IReadOnlyList<SavedTrack>> GetSavedTracksAsync(
+        int maxItems = 200, CancellationToken ct = default);
+
+    Task<IReadOnlyList<FullArtist>> GetFollowedArtistsAsync(
+        int maxItems = 200, CancellationToken ct = default);
+
+    /// <summary>Null when nothing is playing, or playback is on a private session.</summary>
+    Task<CurrentlyPlaying?> GetCurrentlyPlayingAsync(CancellationToken ct = default);
 }
