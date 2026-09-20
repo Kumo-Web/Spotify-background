@@ -1,25 +1,40 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup Label="Spotify">
+    <PackageReference Include="SpotifyAPI.Web" />
+    <PackageReference Include="SpotifyAPI.Web.Auth" />
+  </ItemGroup>
+
+  <ItemGroup Label="Persistence">
+    <!-- Cosmos SDK direct. EF Core removed: the data model is 8 document types of point reads. -->
+    <PackageReference Include="Microsoft.Azure.Cosmos" />
+    <PackageReference Include="Azure.Identity" />
+  </ItemGroup>
+
+  <ItemGroup Label="Security">
+    <!-- IDataProtector, for encrypting Spotify refresh tokens at rest. -->
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup Label="Platform">
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <!-- Sentry (not Sentry.AspNetCore) so Infrastructure can emit gen_ai.* spans and check-ins. -->
+    <PackageReference Include="Sentry" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Application\Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.0" />
-    <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.12.0" />
-    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.12.0" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.12.0" />
-    <PackageReference Include="SpotifyAPI.Web" Version="7.2.1" />
-    <PackageReference Include="SpotifyAPI.Web.Auth" Version="7.2.1" />
+    <!--
+      Lets the unit tests reach internal types (Pkce, the Cosmos store, the repositories) without
+      widening the production surface. These are implementation details that consumers should
+      only ever see through their interfaces.
+    -->
+    <InternalsVisibleTo Include="InfrastructureTests" />
   </ItemGroup>
-
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
 
 </Project>
