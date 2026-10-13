@@ -141,15 +141,28 @@ internal static class CosmosClientFactory
             // behaviour matches the rest of the app and we carry one JSON library, not two.
             UseSystemTextJsonSerializerWithOptions = SerializerOptions,
             // Gateway keeps outbound connections to a single HTTPS port, which suits a
-            // scale-to-zero container better than Direct mode's connection pool.
+            // scale-to-zero container better than Direct mode's connection pool. It is also the
+            // only mode the Linux emulator supports.
             ConnectionMode = ConnectionMode.Gateway,
         };
+
+        // The emulator serves HTTPS with a self-signed certificate nothing trusts, and the .NET
+        // SDK has no HTTP mode to fall back to, so without this every local call fails TLS
+        // validation. Scoped to loopback deliberately: a real account is always reached over a
+        // *.documents.azure.com host, so this cannot silently weaken a deployed environment.
+        if (IsLoopback(settings.Endpoint))
+        {
+            options.ServerCertificateCustomValidationCallback = (_, _, _) => true;
+        }
 
         // A key is only expected for the local emulator; in Azure we use managed identity.
         return string.IsNullOrWhiteSpace(settings.Key)
             ? new CosmosClient(settings.Endpoint, credential, options)
             : new CosmosClient(settings.Endpoint, settings.Key, options);
     }
+
+    private static bool IsLoopback(string endpoint)
+        => Uri.TryCreate(endpoint, UriKind.Absolute, out var uri) && uri.IsLoopback;
 
     /// <summary>
     /// Creates the database and container if absent. Called once at startup.

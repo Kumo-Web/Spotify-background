@@ -8,7 +8,7 @@ import { ApiError } from '@/lib/api';
 import type { NowPlaying, Playlist, Profile } from '@/types/spotify';
 
 export default function DashboardPage() {
-  const { session, loading: sessionLoading, logout } = useSpotify();
+  const { session, loading: sessionLoading } = useSpotify();
   const router = useRouter();
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -63,11 +63,10 @@ export default function DashboardPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
-      <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
-        <h1>{profile?.displayName ?? session?.displayName ?? 'Your library'}</h1>
-        <button type="button" onClick={logout} className="text-sm underline opacity-70 hover:opacity-100">
-          Sign out
-        </button>
+      <header className="mb-8">
+        <h1 className="text-2xl font-semibold">
+          {profile?.displayName ?? session?.displayName ?? 'Your library'}
+        </h1>
       </header>
 
       {error && (

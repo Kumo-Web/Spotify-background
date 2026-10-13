@@ -128,8 +128,13 @@ public static class InfrastructureDI
                 Could not reach Cosmos DB at {settings.Endpoint}.
 
                 If running locally, start the emulator first:
-                  docker run -p 8081:8081 -p 10250-10255:10250-10255 \
-                    mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
+                  docker run --detach --name cosmos \
+                    -p 8081:8081 -p 8080:8080 -p 1234:1234 \
+                    mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-latest \
+                    --protocol https
+
+                --protocol https is required: the emulator defaults to HTTP and the .NET SDK
+                cannot speak it. Wait for http://localhost:8080/ready before starting the API.
 
                 If running in Azure, check that Cosmos:Endpoint is correct and that this app's
                 managed identity holds the Cosmos Data Contributor role.

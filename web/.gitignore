@@ -33,3 +33,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# exported .NET dev certificate, trusted by the Next.js proxy
+.certs/

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import useSpotify from '@/hooks/useSpotify';
 
@@ -12,10 +12,23 @@ const ERROR_MESSAGES: Record<string, string> = {
   no_refresh_token: 'Spotify did not issue a refresh token, so the connection could not be kept.',
 };
 
+/**
+ * useSearchParams() opts its whole subtree into client-side rendering, and Next refuses to
+ * prerender a page that does so without a Suspense boundary — without this split the page
+ * renders fine in dev but `next build` fails outright.
+ */
 export default function LoginPage() {
-  const { session, loading, login } = useSpotify();
+  return (
+    <Suspense fallback={<main className="p-8 text-sm opacity-70">Loading…</main>}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
+  const { session, loading, error, login } = useSpotify();
   const router = useRouter();
-  const error = useSearchParams().get('error');
+  const callbackError = useSearchParams().get('error');
 
   useEffect(() => {
     if (session?.authenticated) {
@@ -26,15 +39,21 @@ export default function LoginPage() {
   return (
     <main className="mx-auto flex min-h-[60vh] max-w-md flex-col justify-center gap-6 px-4">
       <div>
-        <h1 className="mb-2">Connect Spotify</h1>
+        <h1 className="mb-2 text-2xl font-semibold">Connect Spotify</h1>
         <p className="text-sm opacity-70">
           Sign in with Spotify to build playlists from your listening history.
         </p>
       </div>
 
-      {error && (
+      {callbackError && (
         <p role="alert" className="rounded border border-red-500/40 bg-red-500/10 p-3 text-sm">
-          {ERROR_MESSAGES[error] ?? 'Login failed. Please try again.'}
+          {ERROR_MESSAGES[callbackError] ?? 'Login failed. Please try again.'}
+        </p>
+      )}
+
+      {error && (
+        <p role="alert" className="rounded border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+          {error}
         </p>
       )}
 
