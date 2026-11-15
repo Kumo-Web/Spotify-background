@@ -103,7 +103,8 @@ public static class InfrastructureDI
     }
 
     /// <summary>
-    /// Creates the Cosmos database and container if they don't exist. Call once during startup.
+    /// Creates the Cosmos database and container if they don't exist (emulator), or verifies
+    /// they do (Azure, where Bicep provisions them). Call once during startup.
     /// <para>
     /// Deliberately fails startup if Cosmos is unreachable — an API that boots without its
     /// database only fails later, per request, and more confusingly.
@@ -120,7 +121,9 @@ public static class InfrastructureDI
         {
             await CosmosClientFactory.EnsureCreatedAsync(client, settings, ct);
         }
-        catch (Exception ex) when (ex is HttpRequestException or CosmosException)
+        // AuthenticationFailedException covers managed identity being unavailable — the usual
+        // cause in Azure is AZURE_CLIENT_ID not naming the user-assigned identity.
+        catch (Exception ex) when (ex is HttpRequestException or CosmosException or AuthenticationFailedException)
         {
             // Replace the SDK's 30-line retry stack trace with something that says what to do.
             throw new InvalidOperationException(
@@ -136,8 +139,11 @@ public static class InfrastructureDI
                 --protocol https is required: the emulator defaults to HTTP and the .NET SDK
                 cannot speak it. Wait for http://localhost:8080/ready before starting the API.
 
-                If running in Azure, check that Cosmos:Endpoint is correct and that this app's
-                managed identity holds the Cosmos Data Contributor role.
+                If running in Azure, check that AZURE_CLIENT_ID is set to the app identity's
+                client id, that Cosmos:Endpoint is correct, that this app's
+                managed identity holds Cosmos DB Built-in Data Contributor, and that
+                infra/main.bicep has created the database and container — the app cannot
+                create them itself under managed identity.
                 """,
                 ex);
         }

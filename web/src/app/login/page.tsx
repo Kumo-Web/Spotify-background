@@ -2,9 +2,19 @@
 
 import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import useSpotify from '@/hooks/useSpotify';
+import StatusScreen from '@/components/status-screen';
+import LoginCard from '@/features/auth/login-card';
+import { useSession } from '@/features/auth/session-provider';
+import Turntable from '@/features/turntable/turntable';
+import { sanitiseReturnPath } from '@/lib/security';
+import { SITE_NAME } from '@/lib/site';
 
-/** Maps the error codes the API's OAuth callback can redirect back with. */
+/**
+ * Maps the error codes the API's OAuth callback can redirect back with.
+ *
+ * The code in the URL only ever selects one of these sentences. It is never printed itself, so
+ * a crafted `?error=` cannot put its own text on the page.
+ */
 const ERROR_MESSAGES: Record<string, string> = {
   denied: 'You declined access on Spotify. Nothing was connected.',
   invalid_callback: 'Spotify sent an incomplete response. Please try again.',
@@ -19,52 +29,42 @@ const ERROR_MESSAGES: Record<string, string> = {
  */
 export default function LoginPage() {
   return (
-    <Suspense fallback={<main className="p-8 text-sm opacity-70">Loading…</main>}>
-      <LoginForm />
+    <Suspense fallback={<StatusScreen title="Loading…" />}>
+      <LoginScreen />
     </Suspense>
   );
 }
 
-function LoginForm() {
-  const { session, loading, error, login } = useSpotify();
+/** The turntable switched off, with the log in card where the album sleeve will be. */
+function LoginScreen() {
+  const { session, loading, error, login } = useSession();
   const router = useRouter();
-  const callbackError = useSearchParams().get('error');
+  const searchParams = useSearchParams();
+
+  const callbackError = searchParams.get('error');
+  // Where to go after login. Only ever a path on this site — see sanitiseReturnPath.
+  const returnPath = sanitiseReturnPath(searchParams.get('next')) ?? '/';
 
   useEffect(() => {
     if (session?.authenticated) {
-      router.replace('/dashboard');
+      router.replace(returnPath);
     }
-  }, [session, router]);
+  }, [session, router, returnPath]);
+
+  const problem = callbackError
+    ? (ERROR_MESSAGES[callbackError] ?? 'Login failed. Please try again.')
+    : error;
 
   return (
-    <main className="mx-auto flex min-h-[60vh] max-w-md flex-col justify-center gap-6 px-4">
-      <div>
-        <h1 className="mb-2 text-2xl font-semibold">Connect Spotify</h1>
-        <p className="text-sm opacity-70">
-          Sign in with Spotify to build playlists from your listening history.
-        </p>
-      </div>
-
-      {callbackError && (
-        <p role="alert" className="rounded border border-red-500/40 bg-red-500/10 p-3 text-sm">
-          {ERROR_MESSAGES[callbackError] ?? 'Login failed. Please try again.'}
-        </p>
-      )}
-
-      {error && (
-        <p role="alert" className="rounded border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-          {error}
-        </p>
-      )}
-
-      <button
-        type="button"
-        onClick={() => login('/dashboard')}
-        disabled={loading}
-        className="rounded-full bg-[#1DB954] px-6 py-3 font-medium text-black transition hover:brightness-110 disabled:opacity-50"
+    <main>
+      <Turntable
+        power="off"
+        card={<LoginCard problem={problem} checking={loading} onLogin={() => login(returnPath)} />}
       >
-        {loading ? 'Checking session…' : 'Continue with Spotify'}
-      </button>
+        <p className="absolute inset-x-0 top-4 z-10 text-center font-display text-lg font-bold tracking-tight sm:top-8 sm:text-[22px]">
+          {SITE_NAME}
+        </p>
+      </Turntable>
     </main>
   );
 }

@@ -1,54 +1,51 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@layer base {
-  h1 {
-    @apply text-4xl;
-  }
-  h2 {
-    @apply text-3xl;
-  }
-  h3 {
-    @apply text-2xl;
-  }
-  h4 {
-    @apply text-xl;
-  }
-  h5 {
-    @apply text-lg;
-  }
-  h6 {
-    @apply text-xs;
-  }
-}
 
+/*
+ * Design tokens. Every colour on the site comes from here (Tailwind maps them in
+ * tailwind.config.ts), so a change of palette is a change to this block and nothing else.
+ *
+ * The site is dark only, on purpose: the page is a record player in a dim room, and the colour
+ * is meant to come from the album artwork.
+ */
 :root {
-  padding: 0;
-  margin: 0;
-  font-size: 16px;
-  overscroll-behavior-block: contain;
-  --header-height: 7rem;
-}
+  --bg: #0d0f14;
+  --surface: #161920;
+  --raised: #1e222b;
+  --line: #2a2f3a;
+  --fg: #f2f0eb;
+  --muted: #a7adba;
+  --accent: #f5b14c;
+  --on-accent: #0d0f14;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-  
-  }
+  /* Earlier names, kept so existing `bg-background` / `text-foreground` classes still resolve. */
+  --background: var(--bg);
+  --foreground: var(--fg);
+
+  color-scheme: dark;
+  overscroll-behavior-block: contain;
 }
 
 body {
-  min-height: 100vh;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100dvh;
+  color: var(--fg);
+  background: var(--bg);
 }
 
-@media (max-width: 1024px) {
-  
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 }
 
-/* ===================== MEDIA QUERIES ( SMALL DEVICES) ================= */
-
-@media (max-width: 600px) {
-
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

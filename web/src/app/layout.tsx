@@ -1,37 +1,51 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
+import { Bricolage_Grotesque, Inter } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/header";
-import Footer from "@/components/footer";
+import { SessionProvider } from "@/features/auth/session-provider";
+import { SITE_NAME } from "@/lib/site";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// next/font downloads these at build time and serves them from this site, so no visitor's
+// browser ever contacts Google — which is also why the CSP can keep `font-src 'self'`.
+const displayFont = Bricolage_Grotesque({
+  variable: "--font-display",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const bodyFont = Inter({
+  variable: "--font-body",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Spotify Playlists",
-  description: "Build Spotify playlists from your listening history.",
+  title: { default: SITE_NAME, template: `%s · ${SITE_NAME}` },
+  description: "A record player for what you are listening to on Spotify.",
+  // A personal site showing one person's listening. Nothing here is for search engines.
+  robots: { index: false, follow: false },
 };
 
-export default function RootLayout({
+export const viewport: Viewport = {
+  themeColor: "#0d0f14",
+  colorScheme: "dark",
+};
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Reading the request makes every page render per request instead of once at build time.
+  // That is required, not incidental: the CSP nonce set in middleware.ts only reaches Next's
+  // own <script> tags on a page rendered for that request. A page prerendered at build time
+  // carries no nonce, so the browser would refuse to run its scripts.
+  await headers();
+
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <Header />
-        {children}
-        <Footer />
+      <body className={`${displayFont.variable} ${bodyFont.variable} font-body antialiased`}>
+        <SessionProvider>{children}</SessionProvider>
       </body>
     </html>
   );

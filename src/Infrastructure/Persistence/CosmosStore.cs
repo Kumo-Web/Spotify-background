@@ -165,11 +165,27 @@ internal static class CosmosClientFactory
         => Uri.TryCreate(endpoint, UriKind.Absolute, out var uri) && uri.IsLoopback;
 
     /// <summary>
-    /// Creates the database and container if absent. Called once at startup.
+    /// Creates the database and container if absent (emulator), or checks they exist (Azure).
+    /// Called once at startup.
+    /// <para>
+    /// The split exists because Cosmos data-plane RBAC has no permission for creating databases
+    /// or containers — those are control-plane operations. A managed identity holding Cosmos DB
+    /// Built-in Data Contributor can read and write items but gets a 403 from
+    /// CreateDatabaseIfNotExistsAsync. In Azure, infra/main.bicep owns provisioning instead.
+    /// </para>
     /// </summary>
     public static async Task EnsureCreatedAsync(
         CosmosClient client, CosmosSettings settings, CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(settings.Key))
+        {
+            // Managed identity: a metadata read, which Data Contributor does allow. Throws
+            // NotFound if Bicep hasn't created the container, which surfaces at boot.
+            await client.GetContainer(settings.DatabaseName, settings.ContainerName)
+                .ReadContainerAsync(cancellationToken: ct);
+            return;
+        }
+
         var database = await client.CreateDatabaseIfNotExistsAsync(
             settings.DatabaseName, throughput: settings.ThroughputRu, cancellationToken: ct);
 

@@ -1,0 +1,20 @@
+# Everything listed here is never sent to Docker when building src/API/Dockerfile. Smaller
+# context = faster builds, and local secrets can't end up baked into an image.
+
+# Build output: the image compiles its own, and stale local copies would break the build.
+**/bin
+**/obj
+
+# Not part of the API.
+web
+Tests
+.git
+.github
+.vscode
+.claude
+.remember
+infra
+
+# Local-only config. Real settings are supplied by Azure at runtime.
+**/appsettings.Development.json
+**/*.user

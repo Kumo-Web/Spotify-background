@@ -1,350 +1,247 @@
-# Spotify AI Music Analysis Platform
+# Spotify AI Playlists
 
-A full-stack application that integrates with Spotify to provide AI-powered music analysis and intelligent playlist generation. Users can authenticate with their Spotify accounts, analyze their listening habits, and create personalized playlists using natural language prompts powered by Anthropic Claude.
+A full-stack app that connects to your Spotify account: your profile, top artists and tracks,
+what's playing now, and your playlists. AI playlist generation with Anthropic Claude is planned
+but not built yet.
 
-## 🎵 Features
+## Tech stack
 
-### Current Features
-- **Spotify OAuth Authentication** - Secure OAuth 2.0 integration with automatic token refresh
-- **User Profile Management** - Access and display Spotify user information
-- **Music Data Collection**
-  - Retrieve top tracks and artists (short-term, medium-term, long-term)
-  - Access recently played tracks
-  - View followed artists
-  - Get saved/liked tracks
-- **Audio Feature Analysis** - Extract detailed audio characteristics (energy, danceability, valence, tempo, etc.)
-- **Playlist Management** - Create and manage Spotify playlists programmatically
+**Backend** (`src/`)
+- ASP.NET Core on .NET 10, Clean Architecture (`Domain` ← `Application` ← `Infrastructure`, `API`)
+- Azure Cosmos DB through the Cosmos SDK. There is **no Entity Framework and no migrations**:
+  the API creates the database and container itself at startup when it runs against the
+  emulator.
+- Spotify OAuth (authorisation code + PKCE), with SpotifyAPI.Web 7.4.2
+- HttpOnly cookie sessions. The Spotify access token never reaches the browser.
+- Sentry for errors
 
-### 🚧 In Development
-- **AI-Powered Playlist Generation** - Natural language playlist creation using Anthropic Claude
-- **Music Preference Analysis** - Intelligent analysis of listening patterns and preferences
-- **Smart Recommendations** - AI-driven track recommendations based on user taste
-- **Playlist History Tracking** - View and manage AI-generated playlists
+**Frontend** (`web/`)
+- Next.js 15 (App Router), React 19, TypeScript, Tailwind, three.js
+- pnpm
 
-## 🛠️ Tech Stack
+## How the pieces fit together locally
 
-### Backend
-- **Framework:** ASP.NET Core 9.0 (C#)
-- **Architecture:** Clean Architecture (DDD)
-  - Domain Layer - Entities and business rules
-  - Application Layer - Use cases and interfaces
-  - Infrastructure Layer - External integrations
-  - API Layer - REST endpoints
-- **Database:** SQL Server / SQLite with Entity Framework Core 9.0
-- **Authentication:** OAuth 2.0 via Spotify
-- **API Integration:** SpotifyAPI.Web v7.2.1
-- **AI Integration:** Anthropic Claude API (claude-sonnet-4-5)
-- **Observability:** OpenTelemetry, Sentry
-
-### Frontend
-- **Framework:** Next.js 15.1.2 (App Router)
-- **Language:** TypeScript
-- **UI Library:** React 19
-- **Styling:** Tailwind CSS 3.4.1
-- **Icons:** React Icons 5.4.0
-
-## 📋 Prerequisites
-
-- [.NET 9.0 SDK](https://dotnet.microsoft.com/download)
-- [Node.js 18+](https://nodejs.org/) and npm
-- [SQL Server](https://www.microsoft.com/sql-server) or SQLite
-- [Spotify Developer Account](https://developer.spotify.com/)
-- [Anthropic API Key](https://console.anthropic.com/) (for AI features)
-- [ngrok](https://ngrok.com/) (for local development with OAuth)
-
-## 🚀 Installation & Setup
-
-### 1. Clone the Repository
-```bash
-git clone <repository-url>
-cd Spotify-background
+```
+Browser ──► https://<your-ngrok-domain> ──► ngrok ──► Next.js  http://localhost:3000
+                                                        │
+                                                        │  /api/* is proxied (next.config.ts)
+                                                        ▼
+                                                   .NET API  https://localhost:7249
+                                                        │
+                                                        ▼
+                                                 Cosmos emulator  https://localhost:8081
 ```
 
-### 2. Spotify App Configuration
+The browser only ever talks to **one host**, the Next.js site. Next.js forwards `/api/*` to
+the API behind the scenes. This matters because the session cookie belongs to whichever host
+answered the OAuth callback. If the browser talked to the API on a different host, the cookie
+would never come back and every request after login would 401.
 
-1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-2. Create a new app
-3. Note your `Client ID` and `Client Secret`
-4. Add redirect URI: `https://your-ngrok-url.ngrok-free.app/api/spotifyAuth/callback`
+That's also why **ngrok points at the frontend (port 3000), not at the API**, and why you
+should browse the app through the ngrok URL rather than `localhost:3000` when you want to log in.
 
-### 3. Backend Setup
+## Prerequisites
 
-#### Configure Application Settings
-```bash
-cd src/API
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- [Node.js 20+](https://nodejs.org/) and [pnpm](https://pnpm.io/installation)
+- [Docker](https://www.docker.com/) (for the Cosmos emulator)
+- [ngrok](https://ngrok.com/) with a free static dev domain
+- A [Spotify developer app](https://developer.spotify.com/dashboard)
+
+## First-time setup
+
+### 1. Claim your ngrok static domain
+
+Free ngrok accounts get one domain that never changes, so you only configure it once.
+
+1. Sign in at [dashboard.ngrok.com](https://dashboard.ngrok.com) and open **Domains**.
+   Claim the free domain if you haven't yet. It looks like `something-random.ngrok-free.dev`.
+2. Connect the CLI to your account (one time):
+   ```bash
+   ngrok config add-authtoken <token from the dashboard>
+   ```
+
+Everywhere below, `<your-domain>` means that hostname with no `https://` and no trailing slash.
+
+### 2. Register the redirect URI with Spotify
+
+In the [Spotify dashboard](https://developer.spotify.com/dashboard), open your app's settings
+and add this redirect URI:
+
+```
+https://<your-domain>/api/auth/callback
 ```
 
-Edit `appsettings.Development.json`:
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Database=SpotifyDb;Trusted_Connection=True;TrustServerCertificate=True;"
-  },
-  "SpotifySettings": {
-    "ClientId": "YOUR_SPOTIFY_CLIENT_ID",
-    "ClientSecret": "YOUR_SPOTIFY_CLIENT_SECRET",
-    "RedirectUrl": "https://your-ngrok-url.ngrok-free.app/api/spotifyAuth/callback",
-    "Scopes": "user-read-private user-read-email user-top-read user-library-read user-follow-read user-read-recently-played playlist-read-private playlist-modify-public playlist-modify-private"
-  },
-  "AnthropicSettings": {
-    "ApiKey": "",
-    "Model": "claude-sonnet-4-5-20250929",
-    "MaxTokens": 4096,
-    "Temperature": 1.0
-  }
+It has to match `SpotifySettings:RedirectUrl` (step 3) character for character.
+
+### 3. Configure the API
+
+```bash
+cp src/API/appsettings.Example.json src/API/appsettings.Development.json
+```
+
+`appsettings.Development.json` is git-ignored. Edit it:
+
+```jsonc
+"SpotifySettings": {
+  "RedirectUrl": "https://<your-domain>/api/auth/callback",
+  ...
+},
+"Cosmos": {
+  "Endpoint": "https://localhost:8081",
+  // The emulator's well-known key. It is the same on every install, so it is not a secret.
+  "Key": "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==",
+  ...
+},
+"Frontend": {
+  // Where the API sends the browser after login. No trailing slash.
+  "BaseUrl": "https://<your-domain>",
+  // Exact origins: scheme + host, no trailing slash, or they will never match.
+  "AllowedOrigins": [ "http://localhost:3000", "https://<your-domain>" ]
 }
 ```
 
-#### Store Secrets Securely
-```bash
-dotnet user-secrets init
-dotnet user-secrets set "SpotifySettings:ClientSecret" "YOUR_SPOTIFY_CLIENT_SECRET"
-dotnet user-secrets set "AnthropicSettings:ApiKey" "YOUR_ANTHROPIC_API_KEY"
-```
-
-#### Install Dependencies & Run Migrations
-```bash
-# Restore NuGet packages
-dotnet restore
-
-# Create database migration
-dotnet ef migrations add InitialMigration -p ../Infrastructure -s . -c Infrastructure.DatabaseContext.SpotifyDbContext
-
-# Apply migration to database
-dotnet ef database update -p ../Infrastructure -s .
-```
-
-### 4. Frontend Setup
+Put the real secrets in user secrets, never in the file:
 
 ```bash
-cd src/API/UI
-
-# Install dependencies
-npm install
-
-# Configure environment variables
-cp .env.example .env.local
+dotnet user-secrets set "SpotifySettings:ClientId"     "<client id>"     --project src/API
+dotnet user-secrets set "SpotifySettings:ClientSecret" "<client secret>" --project src/API
+dotnet user-secrets set "Sentry:Dsn"                   "<dsn>"           --project src/API   # optional
 ```
 
-Edit `.env.local`:
+### 4. Trust the .NET development certificate
+
+The API serves HTTPS with the .NET dev certificate. Your browser and the Next.js proxy both
+need to trust it.
+
 ```bash
-NEXT_PUBLIC_API_URL=https://localhost:7249
+dotnet dev-certs https --trust     # the browser and OS trust it
+cd web && pnpm install && pnpm certs   # exports it to web/.certs/ for the Next.js proxy
 ```
 
-### 5. Setup ngrok for Local Development
+`pnpm dev` passes that file to Node with `NODE_EXTRA_CA_CERTS`. Without it, the proxy refuses
+the API's certificate and the UI shows "Can't reach the API".
 
-In a separate terminal:
+### 5. Frontend environment
+
+`web/.env.development` is committed and already right for local development:
+
 ```bash
-ngrok http https://localhost:7249
+NEXT_PUBLIC_API_URL=                      # empty = same origin, go through the proxy
+API_PROXY_TARGET=https://localhost:7249   # where the proxy forwards /api/* (server side only)
 ```
 
-Copy the HTTPS URL (e.g., `https://abc123.ngrok-free.app`) and update:
-- Spotify Developer Dashboard redirect URI
-- `appsettings.Development.json` → `SpotifySettings:RedirectUrl`
+Leave `NEXT_PUBLIC_API_URL` empty. Setting it makes the browser call the API directly, which
+breaks the session cookie as described above.
 
-## ▶️ Running the Application
+## Running it
 
-### Start Backend (Terminal 1)
+Use four terminals, started in this order.
+
+**1. Cosmos emulator**
 ```bash
-cd src/API
-dotnet run
+docker run --detach --name cosmos \
+  -p 8081:8081 -p 8080:8080 -p 1234:1234 \
+  mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-latest \
+  --protocol https
 ```
-Backend will run on `https://localhost:7249`
+After the first time, use `docker start cosmos`. Wait until `http://localhost:8080/ready`
+answers before starting the API. `--protocol https` is required, because the .NET SDK cannot
+talk to the emulator over HTTP. The `vnext-latest` image also runs on Apple Silicon.
 
-### Start Frontend (Terminal 2)
+Data Explorer is at `http://localhost:1234`.
+
+**2. API**
 ```bash
-cd src/API/UI
-npm run dev
+dotnet run --project src/API      # https://localhost:7249
 ```
-Frontend will run on `http://localhost:3000`
+The API refuses to start if it cannot reach Cosmos, and the error says why.
 
-### Start ngrok (Terminal 3)
+**3. Frontend**
 ```bash
-ngrok http https://localhost:7249
+cd web
+pnpm dev                          # http://localhost:3000
 ```
 
-### Access the Application
-1. Open browser to `http://localhost:3000`
-2. Click "Login with Spotify"
-3. Authorize the application
-4. You'll be redirected to the dashboard
+**4. ngrok**
+```bash
+ngrok http 3000 --url https://<your-domain>
+```
+(Older ngrok versions use `--domain <your-domain>` instead of `--url`.)
 
-## 📁 Project Structure
+**Then open `https://<your-domain>`** and log in with Spotify. ngrok's free tier shows a
+one-time "You are about to visit" warning page per browser. Click through it.
+
+`http://localhost:3000` still works for UI work that doesn't need a session. But logging in
+from there won't work: Spotify sends you back to the ngrok host, so the cookie is set on the
+ngrok host, not on localhost.
+
+## Troubleshooting
+
+| Symptom | Likely cause |
+|---|---|
+| "Can't reach the API" in the UI | API not running, or `pnpm certs` not run (the proxy rejects the dev certificate) |
+| Spotify says `INVALID_CLIENT: Invalid redirect URI` | Dashboard redirect URI and `SpotifySettings:RedirectUrl` differ, even by one character |
+| Login completes but you land back on `/login` | You browsed `localhost:3000` instead of the ngrok domain, or `Frontend:BaseUrl` points somewhere else |
+| ngrok `ERR_NGROK_8012` / bad gateway | `pnpm dev` isn't running on port 3000 |
+| API fails at startup mentioning Cosmos | Emulator not ready yet, or started without `--protocol https` |
+
+## Tests and checks
+
+```bash
+dotnet test                                  # all backend tests (MSTest + Moq, no real DB/HTTP)
+dotnet test Tests/Application.UnitTests      # a single project
+
+cd web
+pnpm typecheck
+pnpm lint
+pnpm build                                   # must pass before committing
+```
+
+## API
+
+Every endpoint is deny-by-default and needs the session cookie, except the ones marked
+*anonymous*. No endpoint takes a user id: the user is always "me", taken from the session.
+
+| Method | Path | |
+|---|---|---|
+| GET | `/api/auth/login?returnPath=` | *anonymous*. Starts OAuth and redirects to Spotify |
+| GET | `/api/auth/callback` | *anonymous*. Spotify returns here and the session cookie is issued |
+| GET | `/api/auth/session` | *anonymous*. `{ authenticated, displayName? }` |
+| POST | `/api/auth/logout` | Ends the session |
+| GET | `/api/me` | Profile |
+| GET | `/api/me/top-artists?range=&limit=` | Top artists |
+| GET | `/api/me/top-tracks?range=&limit=` | Top tracks |
+| GET | `/api/me/now-playing` | Currently playing track |
+| GET | `/api/playlists?limit=` | Your playlists |
+| GET | `/api/playlists/{playlistId}` | One playlist |
+| DELETE | `/api/playlists/{playlistId}` | Unfollow it (Spotify has no real delete) |
+
+## Project structure
 
 ```
 Spotify-background/
 ├── src/
-│   ├── API/                        # Web API & Frontend Host
-│   │   ├── Controllers/            # REST API endpoints
-│   │   ├── UI/                     # Next.js frontend application
-│   │   │   ├── src/
-│   │   │   │   ├── app/            # Next.js pages (App Router)
-│   │   │   │   ├── components/     # React components
-│   │   │   │   ├── hooks/          # Custom React hooks
-│   │   │   │   ├── services/       # API service layer
-│   │   │   │   └── types/          # TypeScript type definitions
-│   │   ├── Program.cs              # Application startup
-│   │   └── appsettings.json        # Configuration
-│   │
-│   ├── Application/                # Application layer (use cases)
-│   │   ├── Interfaces/             # Service contracts
-│   │   └── Services/               # Application services
-│   │
-│   ├── Domain/                     # Domain layer (entities)
-│   │   ├── Entities/               # Domain entities
-│   │   └── SpotifySettings.cs      # Configuration models
-│   │
-│   └── Infrastructure/             # Infrastructure layer
-│       ├── DatabaseContext/        # EF Core DbContext
-│       ├── Interfaces/             # Infrastructure contracts
-│       ├── Migrations/             # Database migrations
-│       ├── Repositories/           # Data access
-│       ├── Services/               # External service integrations
-│       └── InfrastructureDI.cs     # Dependency injection setup
-│
-└── Tests/                          # Test projects
+│   ├── Domain/           # Entities (SpotifyUser, SpotifyToken, OAuthState) and settings models
+│   ├── Application/      # Interfaces, repository contracts, TokenService
+│   ├── Infrastructure/   # Cosmos persistence (CosmosStore), Spotify client, PKCE, token protection
+│   └── API/              # Controllers, Program.cs, cookie auth, Dockerfile
+├── web/                  # Next.js frontend
+│   └── src/
+│       ├── app/          # Routes; (signed-in)/ holds the pages that need a session
+│       ├── features/     # auth, playlists, turntable
+│       ├── lib/          # api.ts (fetch wrapper), security.ts, features.ts (feature flags)
+│       └── services/     # One function per API endpoint
+└── Tests/                # Application, Infrastructure and Domain unit tests
 ```
 
-## 🔌 API Endpoints
+See `CLAUDE.md` for the architecture and the reasoning behind the auth design.
 
-### Authentication
-- `POST /api/spotifyauth/login` - Initiate Spotify OAuth flow
-- `GET /api/spotifyauth/callback` - OAuth callback handler
+## Roadmap
 
-### User Data
-- `GET /api/spotifyuser/getUserInfo/{userId}` - Get user profile information
-
-### AI Playlists (Coming Soon)
-- `POST /api/AIPlaylist/generate` - Generate AI-powered playlist
-- `GET /api/AIPlaylist/status/{requestId}` - Check generation status
-- `GET /api/AIPlaylist/history/{userId}` - Get playlist generation history
-
-## 🗄️ Database Migrations
-
-### Create a New Migration
-```bash
-dotnet ef migrations add MigrationName \
-  -p src/Infrastructure \
-  -s src/API \
-  -c Infrastructure.DatabaseContext.SpotifyDbContext
-```
-
-### Apply Migrations
-```bash
-dotnet ef database update -p src/Infrastructure -s src/API
-```
-
-### Rollback Migration
-```bash
-dotnet ef database update PreviousMigrationName -p src/Infrastructure -s src/API
-```
-
-## 🔧 Development Workflow
-
-### Backend Development
-1. Make changes to C# files
-2. Application auto-reloads with hot reload
-3. Test endpoints using browser or Postman
-
-### Frontend Development
-1. Edit React/TypeScript files in `src/API/UI/src`
-2. Changes hot-reload automatically
-3. View in browser at `http://localhost:3000`
-
-### Database Changes
-1. Modify entities in `src/Domain/Entities/`
-2. Update DbContext if needed
-3. Create and apply migration (see Database Migrations section)
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-dotnet test
-
-# Run specific test project
-dotnet test Tests/YourTestProject
-```
-
-## 📝 Configuration
-
-### Required Spotify OAuth Scopes
-- `user-read-private` - Read user profile
-- `user-read-email` - Read user email
-- `user-top-read` - Read top tracks/artists
-- `user-library-read` - Read saved tracks
-- `user-follow-read` - Read followed artists
-- `user-read-recently-played` - Read recently played tracks
-- `playlist-read-private` - Read private playlists
-- `playlist-modify-public` - Modify public playlists
-- `playlist-modify-private` - Modify private playlists
-
-### Environment Variables
-
-**Backend** (User Secrets):
-- `SpotifySettings:ClientSecret` - Spotify app secret
-- `AnthropicSettings:ApiKey` - Anthropic API key
-
-**Frontend** (.env.local):
-- `NEXT_PUBLIC_API_URL` - Backend API URL
-
-## 🏗️ Architecture Overview
-
-This application follows **Clean Architecture** principles:
-
-### Dependency Flow
-```
-API Layer → Application Layer → Domain Layer
-    ↓
-Infrastructure Layer → Domain Layer
-```
-
-### Key Design Patterns
-- **Repository Pattern** - Data access abstraction
-- **Factory Pattern** - Spotify client creation
-- **Dependency Injection** - Loose coupling
-- **Options Pattern** - Configuration management
-- **Service Layer** - Business logic encapsulation
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- [SpotifyAPI.Web](https://github.com/JohnnyCrazy/SpotifyAPI-NET) - Spotify API wrapper
-- [Anthropic](https://www.anthropic.com/) - AI-powered playlist generation
-- [Next.js](https://nextjs.org/) - React framework
-- [Tailwind CSS](https://tailwindcss.com/) - Styling framework
-
-## 📧 Support
-
-For issues and questions:
-- Open an issue on GitHub
-- Check existing documentation
-- Review the implementation plan in `.claude/plans/`
-
-## 🗺️ Roadmap
-
-- [x] Spotify OAuth authentication
-- [x] User data retrieval (top tracks, artists, saved tracks)
-- [x] Audio feature extraction
-- [x] Playlist creation and management
-- [ ] AI-powered playlist generation with Claude
-- [ ] Music preference analysis
-- [ ] Playlist recommendation engine
-- [ ] User analytics dashboard
-- [ ] Social features (share playlists)
-- [ ] Mobile application
-
----
-
-**Built with ❤️ using ASP.NET Core, Next.js, and Anthropic Claude**
+- [x] Spotify OAuth with server-side sessions
+- [x] Profile, top artists and tracks, now playing, playlists
+- [x] Cosmos DB persistence
+- [ ] Deploy to Azure (Container Apps + Cosmos free tier), in progress
+- [ ] Playback controls and playlist tracks (UI is built and switched off in `web/src/lib/features.ts`)
+- [ ] AI playlist generation with Claude

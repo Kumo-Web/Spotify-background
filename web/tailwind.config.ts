@@ -2,23 +2,29 @@ import type { Config } from "tailwindcss";
 
 export default {
   content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/features/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
+      // Values live in globals.css as CSS variables; these only give them Tailwind names.
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
-        // primary: {
-        //   DEFAULT: '#1e90ff',
-        //   100: '#001d39',
-        //   200: '#003972',
-        // } Example
+        bg: "var(--bg)",
+        surface: "var(--surface)",
+        raised: "var(--raised)",
+        line: "var(--line)",
+        fg: "var(--fg)",
+        muted: "var(--muted)",
+        accent: "var(--accent)",
+        "on-accent": "var(--on-accent)",
       },
-      spacing: {
-        'header': 'var(--header-height)',
+      fontFamily: {
+        // Set by next/font in app/layout.tsx.
+        display: ["var(--font-display)", "system-ui", "sans-serif"],
+        body: ["var(--font-body)", "system-ui", "sans-serif"],
       },
     },
   },

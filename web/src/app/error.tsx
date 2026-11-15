@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
+import StatusScreen from '@/components/status-screen';
 
 /**
  * Route-level error boundary. Next renders this in place of a segment that threw during
@@ -20,28 +21,22 @@ export default function ErrorBoundary({
   }, [error]);
 
   return (
-    <main className="mx-auto flex min-h-[60vh] max-w-md flex-col justify-center gap-4 px-4">
-      <h1 className="text-xl font-semibold">Something went wrong</h1>
-
-      <p role="alert" className="rounded border border-red-500/40 bg-red-500/10 p-3 text-sm">
-        {error.message || 'No further detail was reported.'}
-      </p>
-
+    <StatusScreen
+      title="Something went wrong"
+      message={error.message || 'No further detail was reported.'}
+    >
+      <button
+        type="button"
+        onClick={reset}
+        className="rounded-full bg-accent px-6 py-3 font-semibold text-on-accent"
+      >
+        Try again
+      </button>
+      <Link href="/" className="text-sm text-muted underline hover:text-fg">
+        Back to the turntable
+      </Link>
       {/* Set for server-side errors, where the real message is kept out of the browser. */}
-      {error.digest && <p className="text-xs opacity-50">Reference: {error.digest}</p>}
-
-      <div className="flex items-center gap-4">
-        <button
-          type="button"
-          onClick={reset}
-          className="rounded-full bg-[#1DB954] px-5 py-2 text-sm font-medium text-black transition hover:brightness-110"
-        >
-          Try again
-        </button>
-        <Link href="/" className="text-sm underline opacity-70 hover:opacity-100">
-          Back to start
-        </Link>
-      </div>
-    </main>
+      {error.digest && <p className="w-full text-xs text-muted">Reference: {error.digest}</p>}
+    </StatusScreen>
   );
 }

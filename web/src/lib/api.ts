@@ -78,3 +78,31 @@ export function startLogin(returnPath?: string) {
   const query = returnPath ? `?returnPath=${encodeURIComponent(returnPath)}` : '';
   window.location.href = `${API_BASE}/api/auth/login${query}`;
 }
+
+/**
+ * Turns a failure into a sentence for the screen.
+ *
+ * ApiError.message is written for the developer and names the method and path that failed.
+ * That is useful in the console and wrong in the UI: it reads as noise, and it hands the shape
+ * of the API to anyone looking at the page. Only the unreachable case keeps its own message,
+ * because that one is already instructions for fixing a local setup.
+ */
+export function describeError(error: unknown): string {
+  if (!(error instanceof ApiError)) return 'Something went wrong. Try again.';
+  if (error.isUnreachable) return error.message;
+
+  switch (error.status) {
+    case 401:
+      return 'You have been signed out. Log in with Spotify to carry on.';
+    case 403:
+      return 'Spotify did not allow that.';
+    case 404:
+      return 'That could not be found.';
+    case 409:
+      return 'Spotify is not connected. Log in again.';
+    case 429:
+      return 'Too many requests. Wait a moment, then try again.';
+    default:
+      return 'Something went wrong. Try again.';
+  }
+}
