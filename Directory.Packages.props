@@ -1,0 +1,65 @@
+<Project>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <!--
+    Single source of truth for package versions across all projects.
+    Introduced because versions had drifted (MSTest 3.6.4 vs 3.9.0, Test.Sdk 17.12 vs 17.14,
+    and README/docs claiming EF 9 while csprojs were on 10).
+  -->
+  <ItemGroup Label="Spotify">
+    <!--
+      7.4.2 is the floor, NOT a preference: 7.2.1 predates Spotify's February 2026 breaking
+      changes. 7.3.0 added the new endpoints; 7.4.2 added ReplacePlaylistItems and fixed the
+      removal request model. Anything below 7.4.2 targets endpoints that no longer exist.
+    -->
+    <PackageVersion Include="SpotifyAPI.Web" Version="7.4.2" />
+    <PackageVersion Include="SpotifyAPI.Web.Auth" Version="7.4.2" />
+  </ItemGroup>
+
+  <ItemGroup Label="Persistence">
+    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.63.1" />
+  </ItemGroup>
+
+  <ItemGroup Label="Azure">
+    <PackageVersion Include="Azure.Identity" Version="1.21.0" />
+    <PackageVersion Include="Azure.Extensions.AspNetCore.DataProtection.Blobs" Version="1.5.4" />
+    <PackageVersion Include="Azure.Extensions.AspNetCore.DataProtection.Keys" Version="1.6.4" />
+  </ItemGroup>
+
+  <ItemGroup Label="Observability">
+    <!-- 6.x required: CaptureCheckIn monitor upsert needs >= 4.7.0, Sentry.Extensions.AI needs 6.x -->
+    <PackageVersion Include="Sentry" Version="6.11.0" />
+    <PackageVersion Include="Sentry.AspNetCore" Version="6.11.0" />
+    <PackageVersion Include="Sentry.Extensions.Logging" Version="6.11.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="Framework">
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup Label="Validation">
+    <!-- FluentValidation.AspNetCore (auto-validation) is deprecated upstream; use core + DI. -->
+    <PackageVersion Include="FluentValidation" Version="12.1.1" />
+    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+  </ItemGroup>
+
+  <ItemGroup Label="Testing">
+    <!--
+      Held deliberately: MSTest 4.x and Test.Sdk 18.x are major versions with breaking changes.
+      Aligning on the highest version already in use rather than mixing a test-framework
+      migration into security work. Upgrade as its own change.
+    -->
+    <PackageVersion Include="MSTest" Version="3.9.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.0" />
+    <PackageVersion Include="Moq" Version="4.20.72" />
+  </ItemGroup>
+
+</Project>
