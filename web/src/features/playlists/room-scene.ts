@@ -1,9 +1,10 @@
 import * as THREE from 'three';
-import { COVER_COLOURS, PILES, colourFor } from './shelf';
+import { COVER_COLOURS, PILES, colourFor, type RoomMode } from './shelf';
 
 /**
- * The playlist room: a shelf with four piles of records against a wall, with pictures, a
- * hanging lamp and a plant.
+ * The playlist room: a shelf with four piles of records against a wall, with a window, pictures,
+ * a hanging lamp and a plant. By day the sun is outside and the lamp is off; by night the moon
+ * is out and the lamp is on.
  *
  * This file is plain three.js with no React in it. playlist-room.tsx owns the <canvas> and the
  * data and calls the few functions returned from createRoomScene. Keeping the two apart means
@@ -15,6 +16,8 @@ import { COVER_COLOURS, PILES, colourFor } from './shelf';
  */
 
 export interface RoomSceneOptions {
+  /** Day or night when the room first appears. */
+  mode: RoomMode;
   /** True when the visitor asked their system for less motion: no camera drift, no sliding. */
   reducedMotion: boolean;
   /** The record under the pointer (or -1), and where the pointer is, for a tooltip. */
@@ -26,6 +29,8 @@ export interface RoomScene {
   setRecords: (ids: string[]) => void;
   /** Slides one record forward, e.g. while its row in the list has focus. -1 for none. */
   setHot: (index: number) => void;
+  /** Fades the room to day or night. */
+  setMode: (mode: RoomMode) => void;
   dispose: () => void;
 }
 
@@ -43,7 +48,8 @@ const COMPARTMENTS: [number, number][] = [
 /** Where the camera stands and looks, for wide and for tall screens. */
 const POSES = {
   wide: { position: [2.5, 1.8, 4.1], target: [2.5, 1.65, -2.4], fov: 38 },
-  tall: { position: [1.9, 1.6, 6.1], target: [1.9, 0, -2.4], fov: 52 },
+  // Further back than the shelf alone would need, so the window stays in the picture.
+  tall: { position: [1.4, 1.6, 7.9], target: [1.4, 0, -2.4], fov: 52 },
 } as const;
 
 /** A repeatable "random" number from 0 to 1, so the piles look the same on every load. */
@@ -63,8 +69,12 @@ export function createRoomScene(canvas: HTMLCanvasElement, options: RoomSceneOpt
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0d0f14);
-  scene.fog = new THREE.Fog(0x0d0f14, 9, 26);
+  // One colour object shared by the background and the fog, so the far edges of the room fade
+  // into exactly the colour behind them, in either mode.
+  const backdrop = new THREE.Color(0x0d0f14);
+  const fog = new THREE.Fog(0x0d0f14, 9, 26);
+  scene.background = backdrop;
+  scene.fog = fog;
 
   const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 80);
   const anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
@@ -140,9 +150,11 @@ export function createRoomScene(canvas: HTMLCanvasElement, options: RoomSceneOpt
   floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
   floorTexture.repeat.set(9, 6);
 
-  const floor = add(scene, new THREE.PlaneGeometry(40, 24), material(0xffffff, 0.78, 0, { map: floorTexture }), 0, 0, 4, false);
+  const floorMaterial = material(0xffffff, 0.78, 0, { map: floorTexture });
+  const floor = add(scene, new THREE.PlaneGeometry(40, 24), floorMaterial, 0, 0, 4, false);
   floor.rotation.x = -Math.PI / 2;
-  add(scene, new THREE.PlaneGeometry(40, 9), material(0x2a3042, 0.95), 0, 4.5, WALL_Z, false);
+  const wallMaterial = material(0x2a3042, 0.95);
+  add(scene, new THREE.PlaneGeometry(40, 9), wallMaterial, 0, 4.5, WALL_Z, false);
   add(scene, new THREE.BoxGeometry(40, 0.14, 0.04), material(0x14161c, 0.7), 0, 0.07, WALL_Z + 0.02, false);
 
   // ---------- shelf ----------
@@ -219,17 +231,92 @@ export function createRoomScene(canvas: HTMLCanvasElement, options: RoomSceneOpt
     }
   });
 
-  picture(0.7, 0.7, -0.9, 2.2, (g, w, h) => {
-    g.fillStyle = '#1c2b33';
-    g.fillRect(0, 0, w, h);
-    g.fillStyle = '#c9953e';
-    g.beginPath();
-    g.arc(w * 0.5, h * 0.4, w * 0.2, 0, TAU);
-    g.fill();
-    g.fillStyle = '#2f5d62';
-    g.fillRect(0, h * 0.62, w, h * 0.1);
-    g.fillRect(0, h * 0.78, w, h * 0.22);
-  });
+  // ---------- window ----------
+
+  /** What is outside: a skyline under the sun, or under the moon with a few windows lit. */
+  const outside = (night: boolean) =>
+    painted(512, 768, (g, w, h) => {
+      const sky = g.createLinearGradient(0, 0, 0, h);
+      sky.addColorStop(0, night ? '#0a1130' : '#7fbdf0');
+      sky.addColorStop(1, night ? '#1d2a5c' : '#dcefff');
+      g.fillStyle = sky;
+      g.fillRect(0, 0, w, h);
+
+      if (night) {
+        g.fillStyle = '#f2f0eb';
+        for (let star = 0; star < 46; star++) {
+          const size = 1.5 + scatter(star + 300) * 2.5;
+          g.globalAlpha = 0.5 + scatter(star + 500) * 0.5;
+          g.fillRect(scatter(star + 100) * w, scatter(star + 200) * h * 0.6, size, size);
+        }
+        g.globalAlpha = 1;
+      } else {
+        // A soft halo, so the sun reads as bright against a pale sky.
+        g.fillStyle = 'rgba(255,246,207,0.4)';
+        g.beginPath();
+        g.arc(w * 0.68, h * 0.2, w * 0.18, 0, TAU);
+        g.fill();
+      }
+
+      g.fillStyle = night ? '#f3edd2' : '#fff6cf';
+      g.beginPath();
+      g.arc(w * 0.68, h * 0.2, w * 0.11, 0, TAU);
+      g.fill();
+
+      if (night) {
+        g.fillStyle = 'rgba(150,150,140,0.5)';
+        g.beginPath();
+        g.arc(w * 0.65, h * 0.185, w * 0.026, 0, TAU);
+        g.arc(w * 0.715, h * 0.225, w * 0.016, 0, TAU);
+        g.fill();
+      }
+
+      // The skyline: [left edge, height, width], each as a share of the picture.
+      const towers = [
+        [0, 0.3, 0.2],
+        [0.18, 0.42, 0.16],
+        [0.32, 0.24, 0.2],
+        [0.5, 0.36, 0.18],
+        [0.66, 0.2, 0.16],
+        [0.8, 0.33, 0.2],
+      ];
+      towers.forEach(([left, height, width], tower) => {
+        const x = left * w;
+        const top = h - height * h;
+        g.fillStyle = night ? '#070a16' : '#8fa3bb';
+        g.fillRect(x, top, width * w, height * h);
+
+        for (let row = 0; row * 26 + 30 < height * h; row++) {
+          for (let column = 0; column * 22 + 22 < width * w; column++) {
+            const lit = scatter(tower * 97 + row * 13 + column * 7) > 0.62;
+            if (night) g.fillStyle = lit ? '#f5c96a' : '#131a30';
+            else g.fillStyle = lit ? '#c8d6e6' : '#a6b7ca';
+            g.fillRect(x + 12 + column * 22, top + 16 + row * 26, 10, 14);
+          }
+        }
+      });
+    });
+
+  const WINDOW_X = -0.45;
+  const WINDOW_Y = 2.05;
+  const WINDOW_W = 1.2;
+  const WINDOW_H = 1.8;
+
+  const windowFrame = material(0xbdb7ab, 0.6);
+  add(scene, new THREE.BoxGeometry(WINDOW_W + 0.16, WINDOW_H + 0.16, 0.08), windowFrame, WINDOW_X, WINDOW_Y, WALL_Z + 0.04);
+
+  // The view is not lit by the room (MeshBasicMaterial) and skips tone mapping: it is a light
+  // source in the picture, so the lamp must neither dim nor tint it. Night is drawn underneath
+  // and day fades in over it, which is all that changing the time of day does to the window.
+  const nightView = keep(new THREE.MeshBasicMaterial({ map: outside(true), toneMapped: false }));
+  const dayView = keep(new THREE.MeshBasicMaterial({ map: outside(false), toneMapped: false, transparent: true, opacity: 0 }));
+  add(scene, new THREE.PlaneGeometry(WINDOW_W, WINDOW_H), nightView, WINDOW_X, WINDOW_Y, WALL_Z + 0.085, false);
+  add(scene, new THREE.PlaneGeometry(WINDOW_W, WINDOW_H), dayView, WINDOW_X, WINDOW_Y, WALL_Z + 0.088, false);
+
+  // Glazing bars and the sill.
+  add(scene, new THREE.BoxGeometry(WINDOW_W, 0.05, 0.05), windowFrame, WINDOW_X, WINDOW_Y, WALL_Z + 0.1);
+  add(scene, new THREE.BoxGeometry(0.04, WINDOW_H, 0.05), windowFrame, WINDOW_X, WINDOW_Y, WALL_Z + 0.1);
+  add(scene, new THREE.BoxGeometry(WINDOW_W + 0.34, 0.05, 0.18), windowFrame, WINDOW_X, WINDOW_Y - WINDOW_H / 2 - 0.1, WALL_Z + 0.1);
 
   // ---------- plant ----------
 
@@ -261,21 +348,17 @@ export function createRoomScene(canvas: HTMLCanvasElement, options: RoomSceneOpt
 
   // ---------- lamp and light ----------
 
-  const LAMP_X = 0.15;
+  // Moved clear of the window, so the shade does not hang in front of the sky.
+  const LAMP_X = 0.55;
   const LAMP_Z = -1.5;
   add(scene, new THREE.CylinderGeometry(0.006, 0.006, 4, 6), material(0x1b1d23, 0.5), LAMP_X, 5.3, LAMP_Z, false);
-  add(
-    scene,
-    new THREE.CylinderGeometry(0.1, 0.36, 0.3, 40, 1, true),
-    material(0xc98f4e, 0.45, 0.6, { side: THREE.DoubleSide, emissive: 0x3a2206 }),
-    LAMP_X,
-    3.15,
-    LAMP_Z,
-    false,
-  );
-  add(scene, new THREE.SphereGeometry(0.07, 16, 12), keep(new THREE.MeshBasicMaterial({ color: 0xffe2b0 })), LAMP_X, 3.06, LAMP_Z, false);
 
-  // The lamp is the only strong light, which is what makes the room dim at its edges.
+  const shadeMaterial = material(0xc98f4e, 0.45, 0.6, { side: THREE.DoubleSide, emissive: 0x3a2206 });
+  const bulbMaterial = keep(new THREE.MeshBasicMaterial({ color: 0xffe2b0 }));
+  add(scene, new THREE.CylinderGeometry(0.1, 0.36, 0.3, 40, 1, true), shadeMaterial, LAMP_X, 3.15, LAMP_Z, false);
+  add(scene, new THREE.SphereGeometry(0.07, 16, 12), bulbMaterial, LAMP_X, 3.06, LAMP_Z, false);
+
+  // By night the lamp is the only strong light, which is what makes the room dim at its edges.
   const lamp = new THREE.SpotLight(0xffd3a0, 60, 0, 1.15, 0.85, 2);
   lamp.position.set(LAMP_X, 3.0, LAMP_Z);
   lamp.target.position.set(LAMP_X + 0.2, 0, LAMP_Z - 0.4);
@@ -290,13 +373,113 @@ export function createRoomScene(canvas: HTMLCanvasElement, options: RoomSceneOpt
   glow.position.set(LAMP_X, 3.25, LAMP_Z + 0.1);
   scene.add(glow);
 
-  scene.add(new THREE.HemisphereLight(0x8fa0c8, 0x2a1c14, 1.6));
+  const ambient = new THREE.HemisphereLight(0x8fa0c8, 0x2a1c14, 1.6);
+  scene.add(ambient);
 
-  // A faint cool light from where the viewer stands. Without it the lamp alone leaves the
-  // inside of the shelf black, and the spines — the whole point of the room — cannot be read.
+  // A light from where the viewer stands. Without it the lamp alone leaves the inside of the
+  // shelf black, and the spines — the whole point of the room — cannot be read.
   const fill = new THREE.DirectionalLight(0xbfd0ff, 1.1);
   fill.position.set(3, 3.5, 7);
   scene.add(fill);
+
+  // By day the sun does the lamp's job, from high on the window's side of the room.
+  const sun = new THREE.DirectionalLight(0xfff1d6, 0);
+  sun.position.set(-4, 6, 5);
+  sun.target.position.set(1.5, 0.5, -2);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  sun.shadow.bias = -0.0005;
+  sun.shadow.camera.left = -6;
+  sun.shadow.camera.right = 6;
+  sun.shadow.camera.top = 6;
+  sun.shadow.camera.bottom = -3;
+  sun.shadow.camera.near = 0.5;
+  sun.shadow.camera.far = 24;
+  scene.add(sun, sun.target);
+
+  // The patch of light the window throws across the floor: warm by day, blue by night.
+  const beam = new THREE.SpotLight(0xffffff, 0, 0, 0.5, 0.9, 2);
+  beam.position.set(WINDOW_X, WINDOW_Y + 0.4, WALL_Z + 0.3);
+  beam.target.position.set(WINDOW_X + 0.9, 0, 0.2);
+  scene.add(beam, beam.target);
+
+  // ---------- day and night ----------
+
+  // Everything that differs between the two. `applyMode(0)` is night, `applyMode(1)` is day, and
+  // anything between is a blend, which is how the change fades instead of snapping.
+  const NIGHT = {
+    backdrop: new THREE.Color(0x0d0f14),
+    wall: new THREE.Color(0x2a3042),
+    floor: new THREE.Color(1, 1, 1),
+    sky: new THREE.Color(0x8fa0c8),
+    ground: new THREE.Color(0x2a1c14),
+    ambient: 1.6,
+    fillColour: new THREE.Color(0xbfd0ff),
+    fill: 1.1,
+    lamp: 60,
+    glow: 6,
+    sun: 0,
+    beamColour: new THREE.Color(0x8fa8ff),
+    beam: 12,
+    exposure: 1.15,
+    shadeGlow: new THREE.Color(0x3a2206),
+    bulb: new THREE.Color(0xffe2b0),
+  };
+  const DAY = {
+    backdrop: new THREE.Color(0xcfc8ba),
+    wall: new THREE.Color(0xd6cebf),
+    // Above 1 on purpose: the boards are painted dark for the night room, and daylight alone
+    // leaves them almost black. This lifts the same wood rather than swapping its texture.
+    floor: new THREE.Color(2.3, 2.2, 2.1),
+    sky: new THREE.Color(0xffffff),
+    ground: new THREE.Color(0xb8a58c),
+    ambient: 2.4,
+    fillColour: new THREE.Color(0xfff4e0),
+    fill: 1.3,
+    lamp: 0,
+    glow: 0,
+    sun: 2.2,
+    beamColour: new THREE.Color(0xfff1d6),
+    beam: 26,
+    exposure: 0.95,
+    shadeGlow: new THREE.Color(0x000000),
+    bulb: new THREE.Color(0x8d897f),
+  };
+
+  const blend = (night: number, day: number, amount: number) => night + (day - night) * amount;
+
+  const applyMode = (amount: number) => {
+    backdrop.lerpColors(NIGHT.backdrop, DAY.backdrop, amount);
+    fog.color.copy(backdrop);
+    wallMaterial.color.lerpColors(NIGHT.wall, DAY.wall, amount);
+    floorMaterial.color.lerpColors(NIGHT.floor, DAY.floor, amount);
+
+    ambient.color.lerpColors(NIGHT.sky, DAY.sky, amount);
+    ambient.groundColor.lerpColors(NIGHT.ground, DAY.ground, amount);
+    ambient.intensity = blend(NIGHT.ambient, DAY.ambient, amount);
+    fill.color.lerpColors(NIGHT.fillColour, DAY.fillColour, amount);
+    fill.intensity = blend(NIGHT.fill, DAY.fill, amount);
+
+    lamp.intensity = blend(NIGHT.lamp, DAY.lamp, amount);
+    glow.intensity = blend(NIGHT.glow, DAY.glow, amount);
+    sun.intensity = blend(NIGHT.sun, DAY.sun, amount);
+    beam.color.lerpColors(NIGHT.beamColour, DAY.beamColour, amount);
+    beam.intensity = blend(NIGHT.beam, DAY.beam, amount);
+
+    // A light that is fully off is hidden, so no time is spent drawing shadows for it.
+    lamp.visible = amount < 1;
+    glow.visible = amount < 1;
+    sun.visible = amount > 0;
+
+    shadeMaterial.emissive.lerpColors(NIGHT.shadeGlow, DAY.shadeGlow, amount);
+    bulbMaterial.color.lerpColors(NIGHT.bulb, DAY.bulb, amount);
+    dayView.opacity = amount;
+    renderer.toneMappingExposure = blend(NIGHT.exposure, DAY.exposure, amount);
+  };
+
+  let modeGoal = options.mode === 'day' ? 1 : 0;
+  let modeNow = modeGoal;
+  applyMode(modeNow);
 
   // ---------- records ----------
 
@@ -458,6 +641,13 @@ export function createRoomScene(canvas: HTMLCanvasElement, options: RoomSceneOpt
     const elapsed = Math.min(0.05, (now - previous) / 1000);
     previous = now;
 
+    if (modeNow !== modeGoal) {
+      modeNow += (modeGoal - modeNow) * (options.reducedMotion ? 1 : Math.min(1, elapsed * 3.5));
+      // Close enough is finished: without this the fade would creep towards its goal forever.
+      if (Math.abs(modeGoal - modeNow) < 0.004) modeNow = modeGoal;
+      applyMode(modeNow);
+    }
+
     records.forEach((record, index) => {
       const goal = index === hot ? 1 : 0;
       record.out = options.reducedMotion ? goal : record.out + (goal - record.out) * Math.min(1, elapsed * 10);
@@ -494,6 +684,9 @@ export function createRoomScene(canvas: HTMLCanvasElement, options: RoomSceneOpt
     setRecords,
     setHot: (index) => {
       hot = index;
+    },
+    setMode: (mode) => {
+      modeGoal = mode === 'day' ? 1 : 0;
     },
     dispose: () => {
       cancelAnimationFrame(frame);

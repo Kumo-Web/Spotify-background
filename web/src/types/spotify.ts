@@ -32,7 +32,13 @@ export interface Playlist {
   trackCount: number;
   image?: string | null;
   isPublic: boolean | null;
+  /** The owner's display name. A name, not an id, so it cannot prove who made the playlist. */
   owner: string | null;
+  /**
+   * Not sent by the API yet. When it is — decided on the server by comparing the owner's id
+   * with the session's — the list uses it instead of comparing display names.
+   */
+  isMine?: boolean;
 }
 
 /** What GET /api/playlists/{id} returns — a subset of Playlist. */

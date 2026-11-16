@@ -22,4 +22,13 @@ export const features = {
    * `{ total, items: [{ id, name, artists, album, albumArt, durationMs }] }`.
    */
   playlistTracks: false,
+
+  /**
+   * "Listened to lately" at the top of the playlist list.
+   *
+   * Needs GET /api/playlists/recent returning the ids of recently played playlists, most
+   * recent first, e.g. `["37i9dQ...", "5Rrf7m..."]`. Spotify's recently-played list says which
+   * playlist each track was played from; the API would collect those ids in order.
+   */
+  recentPlaylists: false,
 } as const;

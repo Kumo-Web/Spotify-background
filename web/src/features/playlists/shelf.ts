@@ -22,3 +22,6 @@ export function colourFor(id: string): string {
   }
   return COVER_COLOURS[hash % COVER_COLOURS.length];
 }
+
+/** day: sun outside, lamp off, a light room. night: moon outside, lamp on, a dim one. */
+export type RoomMode = 'day' | 'night';

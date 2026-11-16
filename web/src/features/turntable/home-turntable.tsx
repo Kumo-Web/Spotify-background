@@ -273,7 +273,7 @@ function PlaylistSpines() {
       >
         Your playlists
       </Link>
-      {playlists.slice(0, 2).map((playlist, index) => (
+      {playlists.slice(0, 2).map(({ playlist }, index) => (
         <Link
           key={playlist.id}
           href={`/playlists/${playlist.id}`}

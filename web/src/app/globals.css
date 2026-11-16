@@ -6,8 +6,9 @@
  * Design tokens. Every colour on the site comes from here (Tailwind maps them in
  * tailwind.config.ts), so a change of palette is a change to this block and nothing else.
  *
- * The site is dark only, on purpose: the page is a record player in a dim room, and the colour
- * is meant to come from the album artwork.
+ * The site is dark by default, on purpose: the page is a record player in a dim room, and the
+ * colour is meant to come from the album artwork. The one exception is the playlist room in
+ * daylight, further down.
  */
 :root {
   --bg: #0d0f14;
@@ -25,6 +26,25 @@
 
   color-scheme: dark;
   overscroll-behavior-block: contain;
+}
+
+/*
+ * Daylight in the playlist room. useRoomMode sets data-theme="day" on <html> while a playlist
+ * page is open and the room is in day mode, and removes it on leaving.
+ *
+ * The accent is a darker amber here: the night one is too pale to read on a light background.
+ */
+:root[data-theme='day'] {
+  --bg: #e7e1d6;
+  --surface: #fbf9f4;
+  --raised: #eee9df;
+  --line: #d3ccbe;
+  --fg: #1a1c22;
+  --muted: #565c6a;
+  --accent: #8f5400;
+  --on-accent: #ffffff;
+
+  color-scheme: light;
 }
 
 body {

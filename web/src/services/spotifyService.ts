@@ -49,6 +49,8 @@ export const getPlaylistTracks = (playlistId: string, limit = 30, offset = 0) =>
     `/api/playlists/${encodeURIComponent(playlistId)}/tracks?limit=${limit}&offset=${offset}`,
   );
 
+export const getRecentPlaylistIds = () => apiFetch<string[]>('/api/playlists/recent');
+
 export const resumePlayback = () => apiFetch<void>('/api/me/player/play', { method: 'PUT' });
 
 export const pausePlayback = () => apiFetch<void>('/api/me/player/pause', { method: 'PUT' });

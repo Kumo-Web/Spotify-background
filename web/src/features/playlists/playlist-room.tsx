@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import SpotifyImage from '@/components/spotify-image';
 import styles from './playlist-room.module.css';
 import type { RoomScene } from './room-scene';
-import { SHELF_CAPACITY, colourFor } from './shelf';
+import { SHELF_CAPACITY, colourFor, type RoomMode } from './shelf';
+import useRoomMode from './useRoomMode';
 
 /** One record on the shelf, and the matching row in the list. */
 export interface RoomRecord {
@@ -17,6 +18,8 @@ export interface RoomRecord {
   href: string;
   /** True for links that leave this site (to Spotify); they open in a new tab. */
   external?: boolean;
+  /** A heading for the part of the list this record belongs to, e.g. "Made by you". */
+  group?: string;
 }
 
 interface PlaylistRoomProps {
@@ -45,6 +48,7 @@ export default function PlaylistRoom({ heading, describe, records, empty, footer
   const sceneRef = useRef<RoomScene | null>(null);
   const router = useRouter();
 
+  const [mode, setMode] = useRoomMode();
   const [page, setPage] = useState(0);
   const [hot, setHot] = useState(-1);
   const [tip, setTip] = useState<{ x: number; y: number } | null>(null);
@@ -76,6 +80,14 @@ export default function PlaylistRoom({ heading, describe, records, empty, footer
     };
   }, [onShelf, router]);
 
+  // Same reason as pickRef: the scene starts in whatever mode is current when it finishes
+  // loading, which may not be the mode from when this component first rendered.
+  const modeRef = useRef<RoomMode>(mode);
+  useEffect(() => {
+    modeRef.current = mode;
+    sceneRef.current?.setMode(mode);
+  }, [mode]);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -90,6 +102,7 @@ export default function PlaylistRoom({ heading, describe, records, empty, footer
         if (cancelled) return;
 
         scene = createRoomScene(canvas, {
+          mode: modeRef.current,
           reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
           onHover: (index, point) => {
             setHot(index);
@@ -122,6 +135,20 @@ export default function PlaylistRoom({ heading, describe, records, empty, footer
 
   const hotRecord = hot >= 0 ? onShelf[hot] : undefined;
 
+  // Rows that share a group heading, kept together under it. Each row remembers its position
+  // on the shelf, because that number is what links a row to its record in the 3D scene.
+  const sections = useMemo(() => {
+    const result: { heading?: string; rows: { record: RoomRecord; index: number }[] }[] = [];
+
+    onShelf.forEach((record, index) => {
+      const current = result[result.length - 1];
+      if (current && current.heading === record.group) current.rows.push({ record, index });
+      else result.push({ heading: record.group, rows: [{ record, index }] });
+    });
+
+    return result;
+  }, [onShelf]);
+
   return (
     <main className={styles.room}>
       <canvas ref={canvasRef} aria-hidden="true" className={styles.canvas} />
@@ -138,30 +165,44 @@ export default function PlaylistRoom({ heading, describe, records, empty, footer
           className={`${styles.panel} rounded-2xl border border-line bg-surface`}
         >
           <div className="border-b border-line p-4">
-            <h1 id="room-heading" className="truncate font-display text-xl font-bold tracking-tight">
-              {heading}
-            </h1>
+            <div className="flex items-start justify-between gap-3">
+              <h1 id="room-heading" className="min-w-0 truncate font-display text-xl font-bold tracking-tight">
+                {heading}
+              </h1>
+              <ModeSwitch mode={mode} onChange={setMode} />
+            </div>
             <p className="mt-1 text-xs text-muted">{describe(onShelf.length, records.length)}</p>
           </div>
 
           {onShelf.length === 0 ? (
             <div className="p-4 text-sm leading-relaxed text-muted">{empty}</div>
           ) : (
-            <ol className="min-h-0 flex-1 overflow-auto p-1.5">
-              {onShelf.map((record, index) => (
-                // A playlist can hold the same track twice, so the id alone is not a safe key.
-                <li key={`${record.id}-${index}`}>
-                  <RecordLink
-                    record={record}
-                    hot={index === hot}
-                    onHot={(isHot) => {
-                      setHot(isHot ? index : -1);
-                      setTip(null);
-                    }}
-                  />
-                </li>
+            <div className="min-h-0 flex-1 overflow-auto p-1.5">
+              {sections.map((section, sectionIndex) => (
+                <section key={`${section.heading ?? 'all'}-${sectionIndex}`}>
+                  {section.heading && (
+                    <h2 className="px-2.5 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
+                      {section.heading}
+                    </h2>
+                  )}
+                  <ol>
+                    {section.rows.map(({ record, index }) => (
+                      // A playlist can hold the same track twice, so the id alone is not a safe key.
+                      <li key={`${record.id}-${index}`}>
+                        <RecordLink
+                          record={record}
+                          hot={index === hot}
+                          onHot={(isHot) => {
+                            setHot(isHot ? index : -1);
+                            setTip(null);
+                          }}
+                        />
+                      </li>
+                    ))}
+                  </ol>
+                </section>
               ))}
-            </ol>
+            </div>
           )}
 
           {(pageCount > 1 || footer) && (
@@ -193,6 +234,30 @@ export default function PlaylistRoom({ heading, describe, records, empty, footer
         </div>
       )}
     </main>
+  );
+}
+
+/** Day or night. Two labelled buttons rather than one icon, so nobody has to guess the state. */
+function ModeSwitch({ mode, onChange }: { mode: RoomMode; onChange: (mode: RoomMode) => void }) {
+  const options: { value: RoomMode; label: string }[] = [
+    { value: 'day', label: 'Day' },
+    { value: 'night', label: 'Night' },
+  ];
+
+  return (
+    <div role="group" aria-label="Time of day in the room" className="flex flex-none rounded-full border border-line p-0.5">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          aria-pressed={mode === option.value}
+          onClick={() => onChange(option.value)}
+          className="min-h-8 rounded-full px-3 text-xs font-semibold text-muted aria-pressed:bg-accent aria-pressed:text-on-accent"
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
   );
 }
 
