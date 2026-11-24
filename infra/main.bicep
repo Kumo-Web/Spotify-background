@@ -73,3 +73,29 @@ resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/container
     }
   }
 }
+
+resource apiIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
+  name: 'id-spotify-api'
+  location: location
+}
+
+// Printed after each deploy. The clientId goes to the API as AZURE_CLIENT_ID in stage 5;
+// the id (full resource ID) is how stage 5 attaches the identity to the Container App.
+output apiIdentityClientId string = apiIdentity.properties.clientId
+output apiIdentityId string = apiIdentity.id
+
+resource dataContributor 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2026-03-15' existing = {
+  parent: cosmos
+  name: '00000000-0000-0000-0000-000000000002' // Cosmos DB Built-in Data Contributor
+}
+
+// Cosmos's OWN role assignment (data plane), not an Azure RBAC one.
+resource apiCosmosAccess 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2026-03-15' = {
+  parent: cosmos
+  name: guid(cosmos.id, apiIdentity.id, dataContributor.id)
+  properties: {
+    roleDefinitionId: dataContributor.id            // which role
+    principalId: apiIdentity.properties.principalId // who gets it
+    scope: cosmos.id                                // where: the whole account
+  }
+}
